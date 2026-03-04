@@ -180,66 +180,69 @@ def status():
     return render_template("premium/status.html", payments=payments)
 
 
-@payments_bp.route("/tribopay/webhook", methods=["POST"])
+@payments_bp.route("/tribopay/webhook", methods=["GET", "POST"])
 def tribopay_webhook():
-    """Webhook para confirmação automática.
-
-    Configure no painel da TriboPay para apontar para:
-      https://SEU_DOMINIO/premium/tribopay/webhook
-
-    E defina um token/segredo (se a TriboPay permitir) e coloque em:
-      TRIBOPAY_WEBHOOK_TOKEN
-
-    O handler aceita formatos diferentes. O importante é conseguir:
-    - referência (reference) OU charge_id/txid
-    - status pago
-    """
+    # ✅ GET = healthcheck / teste do painel
+    if request.method == "GET":
+        return {"ok": True, "message": "Webhook online"}, 200
 
     expected = os.getenv("TRIBOPAY_WEBHOOK_TOKEN")
-    if expected:
-        auth = request.headers.get("Authorization", "")
-        # aceita "Bearer xxx" ou token direto
-        token = auth.replace("Bearer", "").strip() if auth else ""
-        if token != expected:
-            abort(401)
 
-    data = request.get_json(silent=True) or {}
+    # ✅ aceita token por header OU por querystring
+    token = ""
+    auth = request.headers.get("Authorization", "")
+    if auth:
+        token = auth.replace("Bearer", "").strip()
+    if not token:
+        token = request.args.get("token", "").strip()
 
-    # tentativa de leitura bem tolerante
-    status = (data.get("status") or data.get("payment_status") or "").lower()
-    reference = data.get("reference") or data.get("ref") or data.get("external_reference")
-    charge_id = data.get("id") or data.get("charge_id") or data.get("txid")
+    if expected and token != expected:
+        return {"ok": False, "error": "unauthorized"}, 401
 
-    is_paid = status in {"paid", "approved", "confirmed", "completed"}
+    # ✅ aceita JSON ou form-data
+    data = request.get_json(silent=True)
+    if not data:
+        data = request.form.to_dict() or {}
+
+    current_app.logger.info("TriboPay webhook payload: %s", data)
+
+    status = (data.get("status") or data.get("payment_status") or data.get("situacao") or "").lower()
+    reference = data.get("reference") or data.get("ref") or data.get("external_reference") or data.get("referencia")
+    charge_id = data.get("id") or data.get("charge_id") or data.get("txid") or data.get("transaction_id")
+
+    is_paid = status in {"paid", "pago", "approved", "aprovado", "confirmed", "confirmado", "completed", "concluido"}
 
     if not is_paid:
         return {"ok": True}, 200
 
     pay = None
     if reference:
-        # busca pelo reference dentro do pix_payload (json string)
-        pay = Payment.query.filter(Payment.pix_payload.ilike(f"%{reference}%")).order_by(Payment.id.desc()).first()
+        pay = (
+            Payment.query.filter(Payment.pix_payload.ilike(f"%{reference}%"))
+            .order_by(Payment.id.desc())
+            .first()
+        )
 
     if not pay and charge_id:
-        pay = Payment.query.filter(Payment.pix_payload.ilike(f"%{charge_id}%")).order_by(Payment.id.desc()).first()
+        pay = (
+            Payment.query.filter(Payment.pix_payload.ilike(f"%{charge_id}%"))
+            .order_by(Payment.id.desc())
+            .first()
+        )
 
     if not pay:
-        # não achou, mas não falha o webhook
-        current_app.logger.warning("Webhook paid but payment not found. reference=%s charge_id=%s", reference, charge_id)
+        current_app.logger.warning(
+            "Webhook paid but payment not found. reference=%s charge_id=%s", reference, charge_id
+        )
         return {"ok": True}, 200
 
     if pay.status != "paid":
         pay.status = "paid"
         pay.paid_at = datetime.utcnow()
 
-        meta = _safe_json_loads(pay.pix_payload)
-        plan = meta.get("plan") if isinstance(meta, dict) else None
-
         user = User.query.get(pay.user_id)
         if user:
             user.is_premium = True
-            # opcional: você pode travar premium por role aqui
-            # if plan == 'company' and user.role != 'company': ...
 
         db.session.commit()
 
