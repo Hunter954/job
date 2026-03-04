@@ -29,6 +29,12 @@ def create_app():
     app.register_blueprint(company_bp, url_prefix="/empresa")
     app.register_blueprint(admin_bp, url_prefix="/admin")
 
+    # Railway/produção: garantir que as tabelas existam no primeiro deploy.
+    # Isso evita erro "relation does not exist" quando o Postgres está vazio.
+    # Obs.: create_all() é idempotente (não apaga dados), apenas cria o que falta.
+    with app.app_context():
+        db.create_all()
+
     return app
 
 
