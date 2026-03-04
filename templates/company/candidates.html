@@ -99,6 +99,15 @@
                           data-bs-target="#interviewModal{{ app.id }}">
                     Marcar entrevista
                   </button>
+
+                  {# Chat #}
+                  {% if cand and cand.user %}
+                  <form method="post" action="{{ url_for('chat.start') }}" style="display:inline">
+                    <input type="hidden" name="candidate_user_id" value="{{ cand.user.id }}">
+                    {% if app.job %}<input type="hidden" name="job_id" value="{{ app.job.id }}">{% endif %}
+                    <button class="btn btn-sm btn-outline-load" type="submit">Chat</button>
+                  </form>
+                  {% endif %}
                 </div>
               </div>
             </div>

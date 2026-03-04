@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, abort
 from sqlalchemy import func
 from flask_login import current_user
-from models import Job, CandidateProfile
+from models import Job, CandidateProfile, CompanyProfile
 
 main_bp = Blueprint("main", __name__)
 
@@ -19,10 +19,12 @@ def index():
     # ✅ Vagas ativas + sem "vaga fantasma" (título não vazio)
     jobs = (
         Job.query
+        .join(CompanyProfile, Job.company_id == CompanyProfile.id)
         .filter(Job.is_active.is_(True))
+        .filter(CompanyProfile.is_approved.is_(True))
         .filter(Job.title.isnot(None))
         .filter(func.trim(Job.title) != "")
-        .order_by(Job.created_at.desc())
+        .order_by(Job.is_sponsored.desc(), Job.created_at.desc())
         .limit(8)
         .all()
     )
@@ -37,7 +39,9 @@ def index():
 def job_list():
     jobs = (
         Job.query
+        .join(CompanyProfile, Job.company_id == CompanyProfile.id)
         .filter(Job.is_active.is_(True))
+        .filter(CompanyProfile.is_approved.is_(True))
         .filter(Job.title.isnot(None))
         .filter(func.trim(Job.title) != "")
         .order_by(Job.is_sponsored.desc(), Job.created_at.desc())
@@ -51,6 +55,8 @@ def job_detail(job_id):
     job = Job.query.get_or_404(job_id)
     # Não permitir acessar vaga inativa ou 'fantasma'
     if not job.is_active or not job.title or not job.title.strip():
+        abort(404)
+    if not job.company_profile or not job.company_profile.is_approved:
         abort(404)
     can_view_full = False
     if current_user.is_authenticated and current_user.role == "candidate" and current_user.is_premium:

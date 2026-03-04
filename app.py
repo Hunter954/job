@@ -6,6 +6,8 @@ from main import main_bp
 from candidate import candidate_bp
 from company import company_bp
 from admin import admin_bp
+from payments import payments_bp
+from chat import chat_bp
 from models import User
 
 def create_app():
@@ -28,6 +30,8 @@ def create_app():
     app.register_blueprint(candidate_bp, url_prefix="/candidato")
     app.register_blueprint(company_bp, url_prefix="/empresa")
     app.register_blueprint(admin_bp, url_prefix="/admin")
+    app.register_blueprint(payments_bp)
+    app.register_blueprint(chat_bp)
 
     # Railway/produção: garantir que as tabelas existam no primeiro deploy.
     # Isso evita erro "relation does not exist" quando o Postgres está vazio.

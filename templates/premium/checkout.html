@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 860px; margin: 30px auto;">
+  <h2 style="margin-bottom: 6px;">Pagamento via Pix</h2>
+  <p style="color:#666; margin-top:0;">Após o pagamento, o Admin pode confirmar a cobrança e liberar o Premium automaticamente.</p>
+
+  <div style="display:grid; grid-template-columns: 1.1fr 0.9fr; gap:16px; margin-top:18px;">
+    <div style="border:1px solid #eee; border-radius:14px; padding:16px;">
+      <h3 style="margin-top:0;">Copia e cola</h3>
+      <textarea style="width:100%; min-height:120px; border-radius:10px; border:1px solid #e5e7eb; padding:10px;" readonly>{{ payment.pix_payload }}</textarea>
+      <p style="color:#666; margin:10px 0 0;">Chave Pix: <b>{{ payment.pix_key or 'não configurada' }}</b></p>
+    </div>
+    <div style="border:1px solid #eee; border-radius:14px; padding:16px;">
+      <h3 style="margin-top:0;">Resumo</h3>
+      <div style="font-size:18px;">Valor: <b>R$ {{ '%.2f'|format(payment.amount_cents/100) }}</b></div>
+      <div style="margin-top:6px; color:#666;">Status: <b>{{ payment.status }}</b></div>
+      <div style="margin-top:12px;">
+        <a class="btn" href="{{ url_for('payments.status') }}">Acompanhar status</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

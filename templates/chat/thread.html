@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 980px; margin: 30px auto;">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+    <div>
+      <h2 style="margin:0;">Chat</h2>
+      <div style="color:#666;">Com <b>{{ other_user.company_name or other_user.full_name or other_user.email }}</b>{% if conversation.job %} • Vaga: <b>{{ conversation.job.title }}</b>{% endif %}</div>
+    </div>
+    <a href="{{ url_for('chat.inbox') }}">Voltar</a>
+  </div>
+
+  <div style="border:1px solid #eee; border-radius:14px; margin-top:14px; padding:14px; height: 420px; overflow:auto; background:#fff;">
+    {% for m in messages %}
+      {% set mine = (m.sender_user_id == current_user.id) %}
+      <div style="display:flex; justify-content: {{ 'flex-end' if mine else 'flex-start' }}; margin:8px 0;">
+        <div style="max-width:72%; border-radius:14px; padding:10px 12px; border:1px solid #eee; background: {{ '#f0f7ff' if mine else '#fafafa' }};">
+          <div style="white-space:pre-wrap;">{{ m.body }}</div>
+          <div style="font-size:12px; color:#666; margin-top:6px;">{{ m.created_at.strftime('%d/%m %H:%M') if m.created_at else '' }}</div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <form method="post" style="display:flex; gap:10px; margin-top:12px;">
+    <input name="body" placeholder="Digite sua mensagem..." style="flex:1; padding:12px; border-radius:12px; border:1px solid #e5e7eb;" autocomplete="off" />
+    <button class="btn" type="submit">Enviar</button>
+  </form>
+</div>
+{% endblock %}

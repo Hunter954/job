@@ -18,7 +18,9 @@
             <th>E-mail</th>
             <th>CNPJ</th>
             <th>Completo</th>
+            <th>Aprovada</th>
             <th>Premium</th>
+            <th class="text-end">Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -29,10 +31,18 @@
             <td>{{ c.user.email if c.user else '-' }}</td>
             <td>{{ c.cnpj }}</td>
             <td>{% if c.is_completed %}<span class="badge text-bg-success">sim</span>{% else %}<span class="badge text-bg-secondary">não</span>{% endif %}</td>
+            <td>{% if c.is_approved %}<span class="badge text-bg-success">sim</span>{% else %}<span class="badge text-bg-secondary">não</span>{% endif %}</td>
             <td>{% if c.user and c.user.is_premium %}<span class="badge text-bg-warning">sim</span>{% else %}<span class="badge text-bg-secondary">não</span>{% endif %}</td>
+            <td class="text-end">
+              <form method="post" action="{{ url_for('admin.toggle_company_approved', company_id=c.id) }}" style="display:inline">
+                <button class="btn btn-sm {% if c.is_approved %}btn-outline-warning{% else %}btn-outline-success{% endif %}">
+                  {% if c.is_approved %}Reprovar{% else %}Aprovar{% endif %}
+                </button>
+              </form>
+            </td>
           </tr>
           {% else %}
-          <tr><td colspan="6" class="text-secondary">Nenhuma empresa.</td></tr>
+          <tr><td colspan="8" class="text-secondary">Nenhuma empresa.</td></tr>
           {% endfor %}
         </tbody>
       </table>

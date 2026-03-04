@@ -10,6 +10,7 @@
       <a class="btn btn-sm btn-outline-light" href="{{ url_for('admin.jobs') }}">Vagas</a>
       <a class="btn btn-sm btn-outline-light" href="{{ url_for('admin.companies') }}">Empresas</a>
       <a class="btn btn-sm btn-outline-light" href="{{ url_for('admin.candidates') }}">Candidatos</a>
+      <a class="btn btn-sm btn-outline-light" href="{{ url_for('admin.payments') }}">Pagamentos</a>
     </div>
   </div>
 
@@ -20,6 +21,17 @@
     <div class="col-md-2"><div class="card bg-dark text-light"><div class="card-body"><div class="small text-secondary">Vagas</div><div class="h4 m-0">{{ counts.jobs }}</div></div></div></div>
     <div class="col-md-2"><div class="card bg-dark text-light"><div class="card-body"><div class="small text-secondary">Candidaturas</div><div class="h4 m-0">{{ counts.applications }}</div></div></div></div>
     <div class="col-md-2"><div class="card bg-dark text-light"><div class="card-body"><div class="small text-secondary">Premium</div><div class="h4 m-0">{{ counts.premium }}</div></div></div></div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-lg-12">
+      <div class="card bg-dark text-light">
+        <div class="card-header">Atividade (últimos 7 dias)</div>
+        <div class="card-body">
+          <canvas id="adminChart" height="90"></canvas>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="row g-3">
@@ -75,4 +87,33 @@
     </div>
   </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  const labels = {{ charts.labels|tojson }};
+  const dataUsers = {{ charts.users|tojson }};
+  const dataJobs = {{ charts.jobs|tojson }};
+  const dataApps = {{ charts.applications|tojson }};
+
+  const ctx = document.getElementById('adminChart');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Usuários', data: dataUsers, tension: 0.3 },
+        { label: 'Vagas', data: dataJobs, tension: 0.3 },
+        { label: 'Candidaturas', data: dataApps, tension: 0.3 }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: '#e5e7eb' } } },
+      scales: {
+        x: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+        y: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.06)' } }
+      }
+    }
+  });
+</script>
 {% endblock %}

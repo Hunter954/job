@@ -70,6 +70,12 @@
 
   {% include "company/_profile_header.html" %}
 
+  {% if profile and not profile.is_approved %}
+    <div class="alert alert-warning" role="alert">
+      <b>Sua empresa ainda não foi aprovada.</b> Você pode completar seu perfil, mas o cadastro/publicação de vagas será liberado após aprovação pelo Admin.
+    </div>
+  {% endif %}
+
   <!-- Cards de métricas (igual painel candidato, mas com métricas da empresa) -->
   <div class="row g-3 mb-3">
     <div class="col-6 col-md-3">

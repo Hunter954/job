@@ -158,6 +158,8 @@ class CompanyProfile(db.Model):
     description = db.Column(db.Text)
     logo_filename = db.Column(db.String(255))
     is_completed = db.Column(db.Boolean, default=False)
+    # Aprovação (moderação/admin)
+    is_approved = db.Column(db.Boolean, default=False)
     is_sponsored = db.Column(db.Boolean, default=False)
     sponsored_until = db.Column(db.DateTime)
 
@@ -257,3 +259,56 @@ class Notification(db.Model):
 
     def __repr__(self) -> str:
         return f"<Notification {self.message[:20]}>"
+
+
+class Conversation(db.Model):
+    """Canal de chat 1:1 entre empresa e candidato (opcionalmente ligado a uma vaga)."""
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    candidate_user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    job_id = db.Column(db.Integer, db.ForeignKey("job.id"), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    company_user = db.relationship("User", foreign_keys=[company_user_id])
+    candidate_user = db.relationship("User", foreign_keys=[candidate_user_id])
+    job = db.relationship("Job")
+
+    messages = db.relationship(
+        "Message",
+        backref="conversation",
+        lazy="dynamic",
+        cascade="all, delete-orphan",
+    )
+
+
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    conversation_id = db.Column(
+        db.Integer, db.ForeignKey("conversation.id"), nullable=False
+    )
+    sender_user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_read = db.Column(db.Boolean, default=False)
+
+    sender = db.relationship("User")
+
+
+class Payment(db.Model):
+    """Pagamento (Pix) simplificado para ativação Premium.
+
+    OBS: Integração automática com PSP pode ser adicionada depois via webhook.
+    Por enquanto, o admin pode marcar como pago.
+    """
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    amount_cents = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(20), default="pending")  # pending, paid, cancelled
+    pix_key = db.Column(db.String(120))
+    pix_payload = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    paid_at = db.Column(db.DateTime)
+
+    user = db.relationship("User")

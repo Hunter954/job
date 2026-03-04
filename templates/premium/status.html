@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 980px; margin: 30px auto;">
+  <h2>Minhas Cobranças</h2>
+
+  {% if not payments %}
+    <p style="color:#666;">Você ainda não gerou nenhuma cobrança.</p>
+  {% else %}
+    <div style="border:1px solid #eee; border-radius:14px; overflow:hidden;">
+      <table style="width:100%; border-collapse:collapse;">
+        <thead>
+          <tr style="background:#fafafa;">
+            <th style="text-align:left; padding:10px;">ID</th>
+            <th style="text-align:left; padding:10px;">Criado</th>
+            <th style="text-align:left; padding:10px;">Valor</th>
+            <th style="text-align:left; padding:10px;">Status</th>
+            <th style="text-align:left; padding:10px;">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in payments %}
+          <tr style="border-top:1px solid #eee;">
+            <td style="padding:10px;">{{ p.id }}</td>
+            <td style="padding:10px;">{{ p.created_at.strftime('%d/%m/%Y %H:%M') if p.created_at else '' }}</td>
+            <td style="padding:10px;">R$ {{ '%.2f'|format(p.amount_cents/100) }}</td>
+            <td style="padding:10px;">{{ p.status }}</td>
+            <td style="padding:10px;">
+              <a href="{{ url_for('payments.checkout', payment_id=p.id) }}">Ver</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

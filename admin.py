@@ -1,10 +1,14 @@
 from functools import wraps
 
+from datetime import datetime, timedelta
+
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 
 from extensions import db
-from models import User, CompanyProfile, CandidateProfile, Job, Application
+from models import User, CompanyProfile, CandidateProfile, Job, Application, Payment
+
+from sqlalchemy import func
 
 
 admin_bp = Blueprint("admin", __name__, template_folder="templates")
@@ -35,11 +39,40 @@ def dashboard():
     }
     latest_jobs = Job.query.order_by(Job.created_at.desc()).limit(10).all()
     latest_users = User.query.order_by(User.created_at.desc()).limit(10).all()
+
+    # Série 7 dias para gráficos (Chart.js)
+    today = datetime.utcnow().date()
+    start = today - timedelta(days=6)
+
+    def _series(model, dt_field):
+        rows = (
+            db.session.query(func.date(dt_field), func.count())
+            .filter(dt_field >= start)
+            .group_by(func.date(dt_field))
+            .order_by(func.date(dt_field))
+            .all()
+        )
+        mapping = {r[0].isoformat(): int(r[1]) for r in rows}
+        labels = [(start + timedelta(days=i)).isoformat() for i in range(7)]
+        data = [mapping.get(d, 0) for d in labels]
+        return labels, data
+
+    labels, users_7d = _series(User, User.created_at)
+    _, jobs_7d = _series(Job, Job.created_at)
+    _, apps_7d = _series(Application, Application.created_at)
+
+    charts = {
+        "labels": labels,
+        "users": users_7d,
+        "jobs": jobs_7d,
+        "applications": apps_7d,
+    }
     return render_template(
         "admin/dashboard.html",
         counts=counts,
         latest_jobs=latest_jobs,
         latest_users=latest_users,
+        charts=charts,
     )
 
 
@@ -129,9 +162,45 @@ def companies():
     return render_template("admin/companies.html", companies=companies_list)
 
 
+@admin_bp.route("/empresas/<int:company_id>/toggle-approved", methods=["POST"])
+@login_required
+@admin_required
+def toggle_company_approved(company_id):
+    company = CompanyProfile.query.get_or_404(company_id)
+    company.is_approved = not bool(company.is_approved)
+    db.session.commit()
+    flash("Status de aprovação da empresa atualizado.", "success")
+    return redirect(request.referrer or url_for("admin.companies"))
+
+
 @admin_bp.route("/candidatos")
 @login_required
 @admin_required
 def candidates():
     candidates_list = CandidateProfile.query.order_by(CandidateProfile.id.desc()).all()
     return render_template("admin/candidates.html", candidates=candidates_list)
+
+
+@admin_bp.route("/pagamentos")
+@login_required
+@admin_required
+def payments():
+    payments_list = Payment.query.order_by(Payment.created_at.desc()).all()
+    return render_template("admin/payments.html", payments=payments_list)
+
+
+@admin_bp.route("/pagamentos/<int:payment_id>/mark-paid", methods=["POST"])
+@login_required
+@admin_required
+def mark_payment_paid(payment_id):
+    pay = Payment.query.get_or_404(payment_id)
+    if pay.status != "paid":
+        pay.status = "paid"
+        pay.paid_at = datetime.utcnow()
+        # Ativa premium para o usuário
+        user = User.query.get(pay.user_id)
+        if user:
+            user.is_premium = True
+        db.session.commit()
+    flash("Pagamento confirmado e Premium liberado.", "success")
+    return redirect(request.referrer or url_for("admin.payments"))

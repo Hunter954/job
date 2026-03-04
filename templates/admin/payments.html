@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Admin - Pagamentos{% endblock %}
+
+{% block content %}
+<div class="container-xl py-4">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h2 class="m-0">Pagamentos (Pix)</h2>
+    <a class="btn btn-sm btn-outline-light" href="{{ url_for('admin.dashboard') }}">Voltar</a>
+  </div>
+
+  <div class="card bg-dark text-light">
+    <div class="table-responsive">
+      <table class="table table-dark table-hover m-0 align-middle">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Usuário</th>
+            <th>Valor</th>
+            <th>Status</th>
+            <th>Criado</th>
+            <th>Pago</th>
+            <th class="text-end">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in payments %}
+          <tr>
+            <td>{{ p.id }}</td>
+            <td>{{ p.user.email if p.user else p.user_id }}</td>
+            <td>R$ {{ '%.2f'|format(p.amount_cents/100) }}</td>
+            <td>
+              {% if p.status == 'paid' %}
+                <span class="badge text-bg-success">pago</span>
+              {% elif p.status == 'pending' %}
+                <span class="badge text-bg-warning">pendente</span>
+              {% else %}
+                <span class="badge text-bg-secondary">{{ p.status }}</span>
+              {% endif %}
+            </td>
+            <td>{{ p.created_at.strftime('%d/%m/%Y %H:%M') if p.created_at else '' }}</td>
+            <td>{{ p.paid_at.strftime('%d/%m/%Y %H:%M') if p.paid_at else '-' }}</td>
+            <td class="text-end">
+              {% if p.status != 'paid' %}
+              <form method="post" action="{{ url_for('admin.mark_payment_paid', payment_id=p.id) }}" style="display:inline">
+                <button class="btn btn-sm btn-outline-success">Confirmar pagamento</button>
+              </form>
+              {% else %}
+                <span class="text-secondary">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="text-secondary">Nenhum pagamento.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

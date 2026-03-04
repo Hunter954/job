@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 980px; margin: 30px auto;">
+  <h2>Mensagens</h2>
+  {% if not conversations %}
+    <p style="color:#666;">Nenhuma conversa ainda.</p>
+  {% else %}
+    <div style="border:1px solid #eee; border-radius:14px; overflow:hidden;">
+      <table style="width:100%; border-collapse:collapse;">
+        <thead>
+          <tr style="background:#fafafa;">
+            <th style="text-align:left; padding:10px;">Conversa</th>
+            <th style="text-align:left; padding:10px;">Vaga</th>
+            <th style="text-align:left; padding:10px;">Criada</th>
+            <th style="text-align:left; padding:10px;">Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in conversations %}
+          <tr style="border-top:1px solid #eee;">
+            <td style="padding:10px;">
+              Empresa: <b>{{ c.company_user.company_name or c.company_user.full_name or c.company_user.email }}</b><br>
+              Candidato: <b>{{ c.candidate_user.full_name or c.candidate_user.email }}</b>
+            </td>
+            <td style="padding:10px;">{{ c.job.title if c.job else '-' }}</td>
+            <td style="padding:10px;">{{ c.created_at.strftime('%d/%m/%Y %H:%M') if c.created_at else '' }}</td>
+            <td style="padding:10px;"><a href="{{ url_for('chat.thread', conversation_id=c.id) }}">Abrir</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

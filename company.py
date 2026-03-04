@@ -426,6 +426,13 @@ def jobs():
             return None, None
 
     if request.method == "POST":
+        if not profile.is_approved:
+            flash(
+                "Sua empresa ainda não foi aprovada pelo Admin. Assim que aprovada, você poderá cadastrar e publicar vagas.",
+                "warning",
+            )
+            return redirect(url_for("company.jobs") + "#job-form")
+
         title = request.form.get("title", "").strip()
         city = request.form.get("city", "").strip()
         employment_type = request.form.get("employment_type", "").strip() or None
