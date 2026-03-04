@@ -1,31 +1,95 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container" style="max-width: 900px; padding: 30px 15px;">
-  <h2 style="font-size: 24px; font-weight: 900; margin-bottom: 6px;">Pagamento via Pix</h2>
-  <p style="color:#6b7280; margin-bottom: 18px;">Status: <strong>{{ payment.status }}</strong></p>
+<div class="container" style="max-width: 960px; margin-top: 24px;">
+  <h2 style="margin-bottom:6px;">Pagamento via Pix</h2>
+  <div style="color:#6b7280; margin-bottom: 14px;">
+    Status: <b id="pay-status">{{ payment.status }}</b>
+    {% if expires_at %}
+      <span style="margin-left:10px;">• expira em <b id="expires-at">{{ expires_at.strftime("%d/%m %H:%M") }}</b></span>
+    {% endif %}
+  </div>
 
-  {% if qrcode %}
-    <div style="border:1px solid #e5e7eb; border-radius:16px; padding:16px; background:#fff; margin-bottom: 14px;">
-      <div style="font-weight:800; margin-bottom:10px;">QR Code</div>
-      {% if qrcode.startswith('http') %}
-        <img src="{{ qrcode }}" alt="QR Code" style="max-width: 280px; width:100%;" />
-      {% else %}
-        <img src="data:image/png;base64,{{ qrcode }}" alt="QR Code" style="max-width: 280px; width:100%;" />
-      {% endif %}
+  <div class="card" style="border:1px solid #e5e7eb; border-radius:16px; padding:18px; display:grid; grid-template-columns: 1fr 340px; gap:16px;">
+    <div>
+      <label style="display:block; font-weight:700; margin-bottom:6px;">Pix Copia e Cola</label>
+      <textarea id="brcode" readonly style="width:100%; min-height:120px; border:1px solid #e5e7eb; border-radius:12px; padding:12px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;">{{ brcode }}</textarea>
+      <div style="display:flex; gap:10px; margin-top:10px; align-items:center;">
+        <button id="copy-btn" class="btn btn-secondary" type="button">Copiar</button>
+        <a href="{{ url_for('payments.status') }}" style="text-decoration:none;">Ver meus pagamentos</a>
+        <span id="copy-msg" style="color:#10b981; font-size:13px; display:none;">Copiado!</span>
+      </div>
+
+      <div style="margin-top:14px; font-size:13px; color:#6b7280;">
+        Após pagar, esta página atualiza automaticamente. Se não atualizar, aguarde alguns segundos (webhook) ou recarregue.
+      </div>
     </div>
-  {% endif %}
 
-  <div style="border:1px solid #e5e7eb; border-radius:16px; padding:16px; background:#fff;">
-    <div style="font-weight:800; margin-bottom:10px;">Pix Copia e Cola</div>
-    <textarea readonly style="width:100%; min-height:120px; border:1px solid #e5e7eb; border-radius:12px; padding:10px;">{{ brcode }}</textarea>
-    <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
-      <button class="btn btn-secondary" type="button" onclick="navigator.clipboard.writeText('{{ brcode|e }}')">Copiar</button>
-      <a class="btn btn-outline" href="{{ url_for('payments.status') }}">Ver meus pagamentos</a>
+    <div>
+      <div style="font-weight:700; margin-bottom:6px;">QR Code</div>
+
+      {% if qrcode_data_uri %}
+        <img src="{{ qrcode_data_uri }}" alt="QR Code Pix" style="width:100%; border:1px solid #e5e7eb; border-radius:12px; padding:10px; background:#fff;">
+      {% elif qrcode %}
+        {% if qrcode.startswith("data:image") %}
+          <img src="{{ qrcode }}" alt="QR Code Pix" style="width:100%; border:1px solid #e5e7eb; border-radius:12px; padding:10px; background:#fff;">
+        {% else %}
+          <img src="{{ qrcode }}" alt="QR Code Pix" style="width:100%; border:1px solid #e5e7eb; border-radius:12px; padding:10px; background:#fff;">
+        {% endif %}
+      {% else %}
+        <div style="border:1px dashed #d1d5db; border-radius:12px; padding:14px; color:#6b7280; font-size:13px;">
+          QR Code indisponível (mostrando apenas o copia e cola).
+        </div>
+      {% endif %}
+
+      <div style="margin-top:10px; font-size:12px; color:#6b7280;">
+        Dica: abra o app do banco → Pix → Pagar com QR Code.
+      </div>
     </div>
   </div>
 
-  <div style="margin-top:14px; color:#6b7280; font-size:13px;">
-    Após o pagamento, seu Premium será ativado automaticamente via webhook (se configurado) ou pelo admin.
+  <div id="paid-box" style="display:none; margin-top:16px; padding:14px; border-radius:14px; border:1px solid #bbf7d0; background:#f0fdf4;">
+    ✅ Pagamento confirmado! Seu Premium foi ativado.
   </div>
 </div>
+
+<script>
+  // copiar
+  const btn = document.getElementById("copy-btn");
+  const br = document.getElementById("brcode");
+  const msg = document.getElementById("copy-msg");
+  btn?.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(br.value);
+      msg.style.display = "inline";
+      setTimeout(()=> msg.style.display="none", 1200);
+    } catch(e) {
+      br.select();
+      document.execCommand("copy");
+      msg.style.display = "inline";
+      setTimeout(()=> msg.style.display="none", 1200);
+    }
+  });
+
+  // polling
+  const pollUrl = "{{ poll_url }}";
+  const statusEl = document.getElementById("pay-status");
+  const paidBox = document.getElementById("paid-box");
+
+  async function poll() {
+    try {
+      const r = await fetch(pollUrl, {headers: {"Accept":"application/json"}});
+      if (!r.ok) return;
+      const data = await r.json();
+      if (!data.ok) return;
+      if (statusEl) statusEl.textContent = data.status;
+
+      if (data.status === "paid") {
+        if (paidBox) paidBox.style.display = "block";
+        return; // para de poll
+      }
+    } catch(e) {}
+    setTimeout(poll, 5000);
+  }
+  setTimeout(poll, 2000);
+</script>
 {% endblock %}

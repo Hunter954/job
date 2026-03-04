@@ -1,52 +1,45 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container" style="max-width: 960px; padding: 30px 15px;">
-  <h2 style="font-size: 28px; font-weight: 800; margin-bottom: 8px;">Planos Premium</h2>
-  <p style="color: #6b7280; margin-bottom: 24px;">Ative recursos Premium com pagamento via Pix (TriboPay).</p>
+<div class="container" style="max-width: 960px; margin-top: 32px;">
+  <h2 style="margin-bottom: 8px;">Planos Premium</h2>
+  <p style="color:#6b7280; margin-bottom: 24px;">
+    Ative seu Premium com Pix em poucos segundos. Você paga pelo app do banco (QR Code) e a ativação acontece automaticamente.
+  </p>
 
-  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px;">
-
-    <div style="border:1px solid #e5e7eb; border-radius:16px; padding:18px; background:#fff;">
-      <h3 style="font-weight:800; font-size:18px; margin:0 0 8px;">Premium Candidato</h3>
-      <div style="font-size:30px; font-weight:900; margin-bottom: 12px;">R$ {{ '%.2f' % (candidate_monthly_cents/100) }} <span style="font-size:14px; font-weight:600; color:#6b7280;">/ mês</span></div>
-      <ul style="margin:0 0 14px 16px; color:#111827;">
+  <div class="grid" style="display:grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap:16px;">
+    <div class="card" style="border:1px solid #e5e7eb; border-radius:14px; padding:18px;">
+      <h3 style="margin:0 0 6px 0;">Candidato Premium</h3>
+      <div style="font-size:28px; font-weight:800;">R$ {{ "%.2f"|format(candidate_monthly_cents/100) }}</div>
+      <ul style="margin:12px 0 16px 18px; color:#374151;">
         <li>Perfil destacado</li>
         <li>Mais visibilidade</li>
-        <li>Prioridade em buscas</li>
+        <li>Prioridade no chat</li>
       </ul>
-      {% if current_user.is_authenticated %}
       <form method="post" action="{{ url_for('payments.subscribe') }}">
         <input type="hidden" name="plan" value="candidate" />
-        <button class="btn btn-primary" style="width:100%; border-radius:12px; padding:10px 12px;">Assinar via Pix</button>
+        <button class="btn btn-primary" type="submit" style="width:100%;">Assinar</button>
       </form>
-      {% else %}
-      <a class="btn btn-primary" style="width:100%; border-radius:12px; padding:10px 12px;" href="{{ url_for('auth.login') }}">Entrar para assinar</a>
-      {% endif %}
     </div>
 
-    <div style="border:1px solid #e5e7eb; border-radius:16px; padding:18px; background:#fff;">
-      <h3 style="font-weight:800; font-size:18px; margin:0 0 8px;">Premium Empresa</h3>
-      <div style="font-size:30px; font-weight:900; margin-bottom: 12px;">R$ {{ '%.2f' % (company_monthly_cents/100) }} <span style="font-size:14px; font-weight:600; color:#6b7280;">/ mês</span></div>
-      <ul style="margin:0 0 14px 16px; color:#111827;">
-        <li>Destaque de vagas</li>
-        <li>Contato rápido com candidatos</li>
-        <li>Mais visibilidade</li>
+    <div class="card" style="border:1px solid #e5e7eb; border-radius:14px; padding:18px;">
+      <h3 style="margin:0 0 6px 0;">Empresa Premium</h3>
+      <div style="font-size:28px; font-weight:800;">R$ {{ "%.2f"|format(company_monthly_cents/100) }}</div>
+      <ul style="margin:12px 0 16px 18px; color:#374151;">
+        <li>Vagas em destaque</li>
+        <li>Mais candidatos qualificados</li>
+        <li>Agendar entrevistas pelo app</li>
       </ul>
-      {% if current_user.is_authenticated %}
       <form method="post" action="{{ url_for('payments.subscribe') }}">
         <input type="hidden" name="plan" value="company" />
-        <button class="btn btn-primary" style="width:100%; border-radius:12px; padding:10px 12px;">Assinar via Pix</button>
+        <button class="btn btn-primary" type="submit" style="width:100%;">Assinar</button>
       </form>
-      {% else %}
-      <a class="btn btn-primary" style="width:100%; border-radius:12px; padding:10px 12px;" href="{{ url_for('auth.login') }}">Entrar para assinar</a>
-      {% endif %}
     </div>
-
   </div>
 
-  <div style="margin-top:18px; color:#6b7280; font-size:13px;">
-    <strong>Configuração:</strong> Para ativação automática, configure as variáveis <code>TRIBOPAY_API_KEY</code> e <code>TRIBOPAY_CREATE_CHARGE_URL</code> no Railway,
-    e cadastre o webhook para <code>/premium/tribopay/webhook</code> (use <code>TRIBOPAY_WEBHOOK_TOKEN</code> se disponível). Se não configurar, o sistema usa <code>PIX_KEY</code> no modo manual.
-  </div>
+  {% if use_redirect_checkout %}
+    <div style="margin-top:16px; font-size:13px; color:#6b7280;">
+      Obs.: Se a API Pix da TriboPay não estiver configurada, o sistema pode redirecionar para o checkout da TriboPay como fallback.
+    </div>
+  {% endif %}
 </div>
 {% endblock %}

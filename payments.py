@@ -1,14 +1,21 @@
 import json
 import os
 import uuid
-from datetime import datetime
+import base64
+import io
+from datetime import datetime, timedelta
 
 import requests
-from flask import Blueprint, flash, redirect, render_template, request, url_for, current_app, abort
+from flask import Blueprint, flash, redirect, render_template, request, url_for, current_app, abort, jsonify
 from flask_login import current_user, login_required
 
 from extensions import db
 from models import Payment, User
+
+try:
+    import segno
+except Exception:  # pragma: no cover
+    segno = None
 
 
 payments_bp = Blueprint("payments", __name__, url_prefix="/premium")
@@ -25,18 +32,40 @@ def _safe_json_loads(s: str):
         return {}
 
 
+def _make_qr_data_uri(payload: str) -> str:
+    """Gera QRCode (data URI png) a partir do BR Code / Pix copia e cola.
+
+    Usa 'segno' (pure python). Se não estiver instalado, retorna string vazia.
+    """
+    if not payload or not segno:
+        return ""
+    try:
+        qr = segno.make(payload, error="m")
+        buf = io.BytesIO()
+        qr.save(buf, kind="png", scale=6, border=2)
+        b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+        return f"data:image/png;base64,{b64}"
+    except Exception as e:  # pragma: no cover
+        current_app.logger.warning("QR generation failed: %s", e)
+        return ""
+
+
 def _create_tribopay_charge(amount_cents: int, reference: str, description: str):
     """Cria cobrança Pix via TriboPay (modo API).
 
-    Variáveis:
-    - TRIBOPAY_API_KEY
-    - TRIBOPAY_CREATE_CHARGE_URL
+    Este método continua "config-driven":
+    - TRIBOPAY_API_KEY: token
+    - TRIBOPAY_CREATE_CHARGE_URL: endpoint completo para criar cobrança Pix
+
+    Espera JSON com campos comuns:
+    - id/charge_id/txid/transaction_id
+    - brcode/pixCopiaECola/copiaecola
+    - qrcode/qrcodeImage/qrCode (base64 ou url)
 
     Se não estiver configurado, retorna None.
     """
     api_key = os.getenv("TRIBOPAY_API_KEY")
     create_url = os.getenv("TRIBOPAY_CREATE_CHARGE_URL")
-
     if not api_key or not create_url:
         return None
 
@@ -50,7 +79,7 @@ def _create_tribopay_charge(amount_cents: int, reference: str, description: str)
         "currency": "BRL",
         "reference": reference,
         "description": description,
-        "expires_in": 1800,
+        "expires_in": 1800,  # 30min
     }
 
     resp = requests.post(create_url, headers=headers, json=payload, timeout=20)
@@ -58,18 +87,14 @@ def _create_tribopay_charge(amount_cents: int, reference: str, description: str)
     return resp.json()
 
 
-def _tribopay_checkout_url_for_plan(plan: str) -> str:
-    """Checkout link do produto na TriboPay.
-
-    Você cria 2 produtos no painel e pega o link do checkout.
-
-    Variáveis:
+def _get_redirect_checkout_url(plan: str) -> str:
+    """Se você preferir a experiência de checkout TriboPay (link), configure:
     - TRIBOPAY_PRODUCT_CANDIDATE_URL
     - TRIBOPAY_PRODUCT_COMPANY_URL
     """
     if plan == "candidate":
-        return (os.getenv("TRIBOPAY_PRODUCT_CANDIDATE_URL") or "").strip()
-    return (os.getenv("TRIBOPAY_PRODUCT_COMPANY_URL") or "").strip()
+        return os.getenv("TRIBOPAY_PRODUCT_CANDIDATE_URL", "").strip()
+    return os.getenv("TRIBOPAY_PRODUCT_COMPANY_URL", "").strip()
 
 
 @payments_bp.route("/planos")
@@ -78,6 +103,7 @@ def plans():
         "premium/plans.html",
         candidate_monthly_cents=CANDIDATE_PRICE_CENTS,
         company_monthly_cents=COMPANY_PRICE_CENTS,
+        use_redirect_checkout=bool(_get_redirect_checkout_url("candidate") or _get_redirect_checkout_url("company")),
     )
 
 
@@ -92,25 +118,26 @@ def subscribe():
 
     amount_cents = CANDIDATE_PRICE_CENTS if plan == "candidate" else COMPANY_PRICE_CENTS
 
-    # referência interna (vamos usar pra encontrar o Payment no webhook)
+    # referência interna
     reference = f"prem_{plan}_{current_user.id}_{uuid.uuid4().hex[:10]}"
     description = f"Premium {plan} - {current_user.email}"
 
     provider = "manual"
     charge_data = None
 
-    # 0) Preferência: checkout de produto da TriboPay (mais simples e garante que o webhook dispare)
-    checkout_url = _tribopay_checkout_url_for_plan(plan)
+    # 0) Se você configurou checkout por link, você pode optar por redirecionar.
+    # Mas a "versão profissional" mantém o usuário no site com QR/copia e cola,
+    # então o redirect é usado apenas como fallback quando a API não está configurada.
+    redirect_url = _get_redirect_checkout_url(plan)
 
-    # 1) Tenta API de Pix (se configurada)
-    if not checkout_url:
-        try:
-            charge_data = _create_tribopay_charge(amount_cents, reference, description)
-            if charge_data:
-                provider = "tribopay"
-        except Exception as e:
-            current_app.logger.warning("TriboPay charge failed: %s", e)
-            charge_data = None
+    # 1) Tenta TriboPay API (automático - fica no site)
+    try:
+        charge_data = _create_tribopay_charge(amount_cents, reference, description)
+        if charge_data:
+            provider = "tribopay_api"
+    except Exception as e:
+        current_app.logger.warning("TriboPay API charge failed: %s", e)
+        charge_data = None
 
     # 2) Fallback manual (PIX_KEY)
     pix_key = os.getenv("PIX_KEY") or os.getenv("PIX_CHAVE") or ""
@@ -122,10 +149,21 @@ def subscribe():
         "amount_cents": amount_cents,
         "tribopay": charge_data or {},
         "pix_key": pix_key,
-        "checkout_url": checkout_url,
+        "redirect_checkout": redirect_url,
     }
 
-    # Cria o registro local SEMPRE (para reconciliar via webhook)
+    if provider == "manual":
+        # Se tiver redirect de checkout, a gente salva o Payment pendente e manda o usuário pro link.
+        if redirect_url:
+            provider = meta["provider"] = "tribopay_redirect"
+        else:
+            if not pix_key:
+                flash(
+                    "PIX_KEY não configurada. Configure uma chave Pix nas Variáveis do Railway (ou configure a API/checkout da TriboPay).",
+                    "warning",
+                )
+            meta["brcode"] = f"PIX|{pix_key}|{amount_cents}|{current_user.email}|{reference}"
+
     pay = Payment(
         user_id=current_user.id,
         amount_cents=amount_cents,
@@ -136,31 +174,9 @@ def subscribe():
     db.session.add(pay)
     db.session.commit()
 
-    # Se tiver link de checkout, redireciona o usuário para pagar na TriboPay
-    # Passamos referência para o webhook conseguir casar (quando a TriboPay suporta querystrings)
-    if checkout_url:
-        sep = "&" if "?" in checkout_url else "?"
-        # Alguns checkouts aceitam parâmetros livres; se a TriboPay não usar, não atrapalha.
-        redirect_url = (
-            f"{checkout_url}{sep}external_reference={reference}&reference={reference}"
-            f"&email={current_user.email}"
-        )
+    # Redireciona apenas no caso do checkout por link
+    if meta.get("provider") == "tribopay_redirect" and redirect_url:
         return redirect(redirect_url)
-
-    # Se foi pela API, vai pro nosso checkout mostrar QR/brcode
-    if provider == "tribopay":
-        return redirect(url_for("payments.checkout", payment_id=pay.id))
-
-    # Manual
-    if not pix_key:
-        flash(
-            "PIX_KEY não configurada. Configure uma chave Pix nas Variáveis do Railway para o modo manual (ou configure a integração TriboPay).",
-            "warning",
-        )
-
-    meta["brcode"] = f"PIX|{pix_key}|{amount_cents}|{current_user.email}|{reference}"
-    pay.pix_payload = json.dumps(meta, ensure_ascii=False)
-    db.session.commit()
 
     return redirect(url_for("payments.checkout", payment_id=pay.id))
 
@@ -174,7 +190,6 @@ def checkout(payment_id: int):
         return redirect(url_for("main.index"))
 
     meta = _safe_json_loads(pay.pix_payload)
-
     tribo = (meta.get("tribopay") or {}) if isinstance(meta, dict) else {}
 
     brcode = (
@@ -187,12 +202,23 @@ def checkout(payment_id: int):
 
     qrcode = tribo.get("qrcode") or tribo.get("qrCode") or tribo.get("qrcodeImage") or ""
 
+    # Se a API não retornou QR, mas temos brcode, geramos localmente
+    qrcode_data_uri = ""
+    if not qrcode and brcode:
+        qrcode_data_uri = _make_qr_data_uri(brcode)
+
+    # Expires (30 min) para UX
+    expires_at = pay.created_at + timedelta(minutes=30) if pay.created_at else None
+
     return render_template(
         "premium/checkout.html",
         payment=pay,
         meta=meta,
         brcode=brcode,
         qrcode=qrcode,
+        qrcode_data_uri=qrcode_data_uri,
+        expires_at=expires_at,
+        poll_url=url_for("payments.payment_poll", payment_id=pay.id),
     )
 
 
@@ -207,15 +233,37 @@ def status():
     return render_template("premium/status.html", payments=payments)
 
 
+@payments_bp.route("/api/poll/<int:payment_id>", methods=["GET"])
+@login_required
+def payment_poll(payment_id: int):
+    """Endpoint de polling para a UI atualizar sem recarregar (versão profissional)."""
+    pay = Payment.query.get_or_404(payment_id)
+    if pay.user_id != current_user.id and current_user.role != "admin":
+        return jsonify({"ok": False, "error": "forbidden"}), 403
+
+    return jsonify({
+        "ok": True,
+        "payment_id": pay.id,
+        "status": pay.status,
+        "paid_at": pay.paid_at.isoformat() if getattr(pay, "paid_at", None) else None,
+        "is_premium": bool(getattr(current_user, "is_premium", False)),
+    }), 200
+
+
 @payments_bp.route("/tribopay/webhook", methods=["GET", "POST"])
 def tribopay_webhook():
-    # GET para teste/healthcheck
+    """Webhook para confirmação automática (tolerante e testável).
+
+    Configure no painel da TriboPay para apontar para:
+      https://SEU_DOMINIO/premium/tribopay/webhook?token=SEU_TOKEN
+
+    Defina o token em:
+      TRIBOPAY_WEBHOOK_TOKEN
+    """
     if request.method == "GET":
         return {"ok": True, "message": "Webhook online"}, 200
 
-    expected = os.getenv("TRIBOPAY_WEBHOOK_TOKEN")
-
-    # aceita Bearer token ou token em querystring
+    expected = os.getenv("TRIBOPAY_WEBHOOK_TOKEN", "").strip()
     token = ""
     auth = request.headers.get("Authorization", "")
     if auth:
@@ -233,13 +281,7 @@ def tribopay_webhook():
     current_app.logger.info("TriboPay webhook payload: %s", data)
 
     status = (data.get("status") or data.get("payment_status") or data.get("situacao") or "").lower()
-    reference = (
-        data.get("reference")
-        or data.get("ref")
-        or data.get("external_reference")
-        or data.get("externalReference")
-        or data.get("referencia")
-    )
+    reference = data.get("reference") or data.get("ref") or data.get("external_reference") or data.get("referencia")
     charge_id = data.get("id") or data.get("charge_id") or data.get("txid") or data.get("transaction_id")
 
     is_paid = status in {"paid", "pago", "approved", "aprovado", "confirmed", "confirmado", "completed", "concluido"}
