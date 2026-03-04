@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block title %}Painel do Candidato - EmpregaJá{% endblock %}
+
+{% block content %}
+<div class="container-xl my-4">
+
+  {% include "candidate/_profile_header.html" %}
+
+  <!-- Cards de métricas -->
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Candidaturas</div>
+          <div class="h4 mb-0">{{ applications_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Entrevistas</div>
+          <div class="h4 mb-0">{{ interviews_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Visualizações</div>
+          <div class="h4 mb-0">{{ views_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Interesses</div>
+          <div class="h4 mb-0">{{ interests_count }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+<ul class="nav nav-tabs dashboard-tabs mb-3">
+  <li class="nav-item">
+    <a class="nav-link active" href="{{ url_for('candidate.dashboard') }}">
+      Visão Geral
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" href="{{ url_for('candidate.profile') }}">
+      Perfil Profissional
+    </a>
+  </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('candidate.personal_data') }}">
+        Meus Dados
+      </a>
+    </li>
+  <li class="nav-item">
+    <a class="nav-link" href="{{ url_for('candidate.applications') }}">
+      Candidaturas
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" href="{{ url_for('candidate.interviews') }}">
+      Entrevistas
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" href="{{ url_for('candidate.settings') }}">
+      Configurações
+    </a>
+  </li>
+</ul>
+
+
+
+  <div class="row g-3">
+
+    <!-- Coluna esquerda -->
+    <div class="col-lg-8 d-flex flex-column gap-3">
+
+      <!-- Empresas Interessadas -->
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <h3 class="h6 mb-0">Empresas Interessadas</h3>
+              <p class="small text-slate-500 mb-0">
+                Empresas que demonstraram interesse no seu perfil
+              </p>
+            </div>
+            <a href="{{ url_for('candidate.interests') }}" class="small text-accent text-decoration-none">
+              Ver todas →
+            </a>
+          </div>
+
+          {% if interests %}
+            <div class="list-group list-group-flush">
+              {% for interest in interests %}
+                <div class="list-group-item px-0 d-flex justify-content-between align-items-start">
+                  <div>
+                    <div class="fw-semibold small mb-1">
+                      {{ interest.company.company_profile.company_name if interest.company and interest.company.company_profile else "Empresa" }}
+                    </div>
+                    <p class="small mb-1 text-slate-400">
+                      {{ interest.message or "Demonstrou interesse no seu perfil." }}
+                    </p>
+                    <div class="d-flex gap-2">
+                      <a href="{{ url_for('candidate.view_interest', interest_id=interest.id) }}"
+                         class="btn btn-sm btn-primary">
+                        Responder
+                      </a>
+                      <a href="#" class="btn btn-sm btn-outline-load">
+                        Ver empresa
+                      </a>
+                    </div>
+                  </div>
+                  <div class="small text-slate-500 ms-3">
+                    {{ interest.created_at.strftime("%Y-%m-%d") if interest.created_at else "" }}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="small text-slate-500 mb-0">
+              Nenhuma empresa demonstrou interesse ainda. Mantenha seu perfil atualizado para aumentar suas chances.
+            </p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Vagas Recomendadas -->
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <h3 class="h6 mb-0">Vagas Recomendadas</h3>
+              <p class="small text-slate-500 mb-0">
+                Baseado no seu perfil e experiência
+              </p>
+            </div>
+            <a href="{{ url_for('main.job_list') }}" class="small text-accent text-decoration-none">
+              Ver todas →
+            </a>
+          </div>
+
+          {% if recommended_jobs %}
+            <div class="row g-3">
+              {% for job in recommended_jobs %}
+                <div class="col-md-4">
+                  <div class="card candidate-job-card h-100">
+                    <div class="card-body d-flex flex-column">
+                      {% if job.is_sponsored %}
+                        <span class="badge badge-sponsored mb-2">Patrocinada</span>
+                      {% endif %}
+                      <h4 class="small fw-semibold mb-1">{{ job.title }}</h4>
+                      <p class="small text-slate-500 mb-1">
+                        {{ job.company.company_profile.company_name if job.company and job.company.company_profile else "Empresa confidencial" }}
+                      </p>
+                      <p class="small text-slate-500 mb-2">
+                        {{ job.city or "Cidade não informada" }}
+                        {% if job.salary_min or job.salary_max %}
+                          · R$
+                          {% if job.salary_min %}{{ "%.0f"|format(job.salary_min) }}{% endif %}
+                          {% if job.salary_max %} - R$ {{ "%.0f"|format(job.salary_max) }}{% endif %}
+                        {% endif %}
+                      </p>
+                      <div class="mt-auto">
+                        <a href="{{ url_for('main.job_detail', job_id=job.id) }}" class="btn btn-outline-load w-100 btn-sm">
+                          Ver Vaga
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="small text-slate-500 mb-0">
+              Ainda não há recomendações de vagas. Assim que novas oportunidades combinarem com seu perfil,
+              elas aparecerão aqui.
+            </p>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Coluna direita -->
+    <div class="col-lg-4">
+      <div class="card h-100">
+        <div class="card-body d-flex flex-column">
+          <h3 class="h6 mb-1">Destaque seu Perfil</h3>
+          <p class="small text-slate-500 mb-3">
+            Aumente suas chances em até <strong>6x</strong> ativando o plano Premium.
+          </p>
+          <ul class="pricing-list mb-3">
+            <li>Apareça no topo das buscas</li>
+            <li>Badge Premium exclusivo</li>
+            <li>Estatísticas avançadas</li>
+            <li>Prioridade em entrevistas</li>
+          </ul>
+          <div class="mt-auto">
+            <a href="{{ url_for('main.index') }}#planos" class="btn btn-primary w-100">
+              Assinar Premium
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

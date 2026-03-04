@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Cadastrar vaga{% endblock %}
+{% block content %}
+<h2 class="mb-3">{{ 'Editar vaga' if job else 'Nova vaga' }}</h2>
+<form method="post">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+        {{ form.title.label(class="form-label") }}
+        {{ form.title(class="form-control") }}
+        {% for error in form.title.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+    </div>
+    <div class="mb-3">
+        {{ form.city.label(class="form-label") }}
+        {{ form.city(class="form-control") }}
+        {% for error in form.city.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                {{ form.salary_min.label(class="form-label") }}
+                {{ form.salary_min(class="form-control") }}
+                {% for error in form.salary_min.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                {{ form.salary_max.label(class="form-label") }}
+                {{ form.salary_max(class="form-control") }}
+                {% for error in form.salary_max.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+        </div>
+    </div>
+    <div class="mb-3">
+        {{ form.description.label(class="form-label") }}
+        {{ form.description(class="form-control", rows=4) }}
+    </div>
+    <div class="mb-3">
+        {{ form.requirements.label(class="form-label") }}
+        {{ form.requirements(class="form-control", rows=4) }}
+    </div>
+    <div class="mb-3">
+        {{ form.benefits.label(class="form-label") }}
+        {{ form.benefits(class="form-control", rows=3) }}
+    </div>
+    <div class="d-grid">
+        {{ form.submit(class="btn btn-primary") }}
+    </div>
+</form>
+{% endblock %}

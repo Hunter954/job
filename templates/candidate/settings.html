@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block title %}Configurações - EmpregaJá{% endblock %}
+
+{% block content %}
+<div class="container-xl my-4">
+
+  {% include "candidate/_profile_header.html" %}
+
+  <!-- Cards de métricas -->
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Candidaturas</div>
+          <div class="h4 mb-0">{{ applications_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Entrevistas</div>
+          <div class="h4 mb-0">{{ interviews_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Visualizações</div>
+          <div class="h4 mb-0">{{ views_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Interesses</div>
+          <div class="h4 mb-0">{{ interests_count }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+<ul class="nav nav-tabs dashboard-tabs mb-3">
+  <li class="nav-item">
+    <a class="nav-link" href="{{ url_for('candidate.dashboard') }}">
+      Visão Geral
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" href="{{ url_for('candidate.profile') }}">
+      Perfil Profissional
+    </a>
+  </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('candidate.personal_data') }}">
+        Meus Dados
+      </a>
+    </li>
+  <li class="nav-item">
+    <a class="nav-link" href="{{ url_for('candidate.applications') }}">
+      Candidaturas
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" href="{{ url_for('candidate.interviews') }}">
+      Entrevistas
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link active" href="{{ url_for('candidate.settings') }}">
+      Configurações
+    </a>
+  </li>
+</ul>
+
+
+  <div class="row g-3">
+    <!-- Coluna esquerda: e-mail -->
+    <div class="col-lg-6 d-flex flex-column gap-3">
+
+      <!-- Alterar E-mail -->
+      <div class="card settings-card">
+        <div class="card-body">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <div>
+              <h3 class="h6 mb-0">Alterar E-mail</h3>
+              <p class="small text-slate-500 mb-0">
+                Atualize seu endereço de e-mail
+              </p>
+            </div>
+            <span class="settings-icon">✉️</span>
+          </div>
+
+          <form method="post" class="mt-3">
+            {{ form.csrf_token }}
+            <input type="hidden" name="action" value="update_email">
+
+            <div class="mb-3">
+              <label class="form-label small text-slate-500 mb-1">E-mail atual</label>
+              <input type="email" class="form-control" value="{{ current_user.email }}" disabled>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small text-slate-500 mb-1">Novo e-mail</label>
+              <input
+                type="email"
+                class="form-control"
+                name="email"
+                placeholder="novo-email@exemplo.com">
+            </div>
+
+            <button type="submit" class="btn btn-outline-load w-100">
+              Alterar E-mail
+            </button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Coluna direita: senha e sair -->
+    <div class="col-lg-6 d-flex flex-column gap-3">
+
+      <!-- Alterar Senha -->
+      <div class="card settings-card">
+        <div class="card-body">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <div>
+              <h3 class="h6 mb-0">Alterar Senha</h3>
+              <p class="small text-slate-500 mb-0">
+                Mantenha sua conta segura. Informe sua senha atual e defina uma nova.
+              </p>
+            </div>
+            <span class="settings-icon">🔒</span>
+          </div>
+
+          <form method="post" class="mt-3">
+            {{ form.csrf_token }}
+            <input type="hidden" name="action" value="update_password">
+
+            <div class="mb-3">
+              <label class="form-label small text-slate-500 mb-1">Senha atual</label>
+              <input
+                type="password"
+                class="form-control"
+                name="current_password"
+                placeholder="Digite sua senha atual">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small text-slate-500 mb-1">Nova senha</label>
+              <input
+                type="password"
+                class="form-control"
+                name="new_password"
+                placeholder="Escolha uma nova senha">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small text-slate-500 mb-1">Confirmar nova senha</label>
+              <input
+                type="password"
+                class="form-control"
+                name="confirm_password"
+                placeholder="Repita a nova senha">
+            </div>
+
+            <button type="submit" class="btn btn-outline-load w-100">
+              Confirmar troca de senha
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Sair da Conta -->
+      <div class="card settings-card settings-card-danger">
+        <div class="card-body">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <div>
+              <h3 class="h6 mb-0 text-danger">Sair da Conta</h3>
+              <p class="small text-slate-500 mb-0">
+                Encerrar sessão atual
+              </p>
+            </div>
+            <span class="settings-icon text-danger">↪</span>
+          </div>
+
+          <a href="{{ url_for('auth.logout') }}" class="btn btn-danger w-100 mt-3">
+            Sair
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

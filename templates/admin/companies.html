@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Admin - Empresas{% endblock %}
+
+{% block content %}
+<div class="container-xl py-4">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h2 class="m-0">Empresas</h2>
+    <a class="btn btn-sm btn-outline-light" href="{{ url_for('admin.dashboard') }}">Voltar</a>
+  </div>
+
+  <div class="card bg-dark text-light">
+    <div class="table-responsive">
+      <table class="table table-dark table-hover m-0 align-middle">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Empresa</th>
+            <th>E-mail</th>
+            <th>CNPJ</th>
+            <th>Completo</th>
+            <th>Premium</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in companies %}
+          <tr>
+            <td>{{ c.id }}</td>
+            <td>{{ c.user.company_name if c.user else '-' }}</td>
+            <td>{{ c.user.email if c.user else '-' }}</td>
+            <td>{{ c.cnpj }}</td>
+            <td>{% if c.is_completed %}<span class="badge text-bg-success">sim</span>{% else %}<span class="badge text-bg-secondary">não</span>{% endif %}</td>
+            <td>{% if c.user and c.user.is_premium %}<span class="badge text-bg-warning">sim</span>{% else %}<span class="badge text-bg-secondary">não</span>{% endif %}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="text-secondary">Nenhuma empresa.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

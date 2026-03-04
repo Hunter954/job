@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Admin - Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-xl py-4">
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <h2 class="m-0">Admin</h2>
+    <div class="d-flex gap-2">
+      <a class="btn btn-sm btn-outline-light" href="{{ url_for('admin.users') }}">Usuários</a>
+      <a class="btn btn-sm btn-outline-light" href="{{ url_for('admin.jobs') }}">Vagas</a>
+      <a class="btn btn-sm btn-outline-light" href="{{ url_for('admin.companies') }}">Empresas</a>
+      <a class="btn btn-sm btn-outline-light" href="{{ url_for('admin.candidates') }}">Candidatos</a>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-2"><div class="card bg-dark text-light"><div class="card-body"><div class="small text-secondary">Usuários</div><div class="h4 m-0">{{ counts.users }}</div></div></div></div>
+    <div class="col-md-2"><div class="card bg-dark text-light"><div class="card-body"><div class="small text-secondary">Candidatos</div><div class="h4 m-0">{{ counts.candidates }}</div></div></div></div>
+    <div class="col-md-2"><div class="card bg-dark text-light"><div class="card-body"><div class="small text-secondary">Empresas</div><div class="h4 m-0">{{ counts.companies }}</div></div></div></div>
+    <div class="col-md-2"><div class="card bg-dark text-light"><div class="card-body"><div class="small text-secondary">Vagas</div><div class="h4 m-0">{{ counts.jobs }}</div></div></div></div>
+    <div class="col-md-2"><div class="card bg-dark text-light"><div class="card-body"><div class="small text-secondary">Candidaturas</div><div class="h4 m-0">{{ counts.applications }}</div></div></div></div>
+    <div class="col-md-2"><div class="card bg-dark text-light"><div class="card-body"><div class="small text-secondary">Premium</div><div class="h4 m-0">{{ counts.premium }}</div></div></div></div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="card bg-dark text-light">
+        <div class="card-header">Últimas vagas</div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-dark table-hover m-0">
+              <thead><tr><th>Título</th><th>Empresa</th><th>Status</th></tr></thead>
+              <tbody>
+              {% for j in latest_jobs %}
+                <tr>
+                  <td>{{ j.title }}</td>
+                  <td>{{ j.company_profile.user.company_name if j.company_profile and j.company_profile.user else '-' }}</td>
+                  <td>
+                    {% if j.is_active %}<span class="badge text-bg-success">ativa</span>{% else %}<span class="badge text-bg-secondary">inativa</span>{% endif %}
+                    {% if j.is_sponsored %}<span class="badge text-bg-warning">destaque</span>{% endif %}
+                  </td>
+                </tr>
+              {% else %}
+                <tr><td colspan="3" class="text-secondary">Nenhuma vaga.</td></tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card bg-dark text-light">
+        <div class="card-header">Últimos usuários</div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-dark table-hover m-0">
+              <thead><tr><th>E-mail</th><th>Role</th><th>Premium</th></tr></thead>
+              <tbody>
+              {% for u in latest_users %}
+                <tr>
+                  <td>{{ u.email }}</td>
+                  <td><span class="badge text-bg-info">{{ u.role }}</span></td>
+                  <td>{% if u.is_premium %}<span class="badge text-bg-warning">sim</span>{% else %}<span class="badge text-bg-secondary">não</span>{% endif %}</td>
+                </tr>
+              {% else %}
+                <tr><td colspan="3" class="text-secondary">Nenhum usuário.</td></tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}{{ job.title }}{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h2>{{ job.title }}</h2>
+        <p class="text-muted">{{ job.city }}</p>
+        {% if job.salary_min or job.salary_max %}
+            <p><strong>Salário:</strong>
+                {% if job.salary_min %}R$ {{ "%.2f"|format(job.salary_min) }}{% endif %}
+                {% if job.salary_max %} - R$ {{ "%.2f"|format(job.salary_max) }}{% endif %}
+            </p>
+        {% endif %}
+
+        {% if can_view_full %}
+            {% if job.description %}
+                <h4>Descrição</h4>
+                <p>{{ job.description|replace('\n', '<br>')|safe }}</p>
+            {% endif %}
+            {% if job.requirements %}
+                <h4>Requisitos</h4>
+                <p>{{ job.requirements|replace('\n', '<br>')|safe }}</p>
+            {% endif %}
+            {% if job.benefits %}
+                <h4>Benefícios</h4>
+                <p>{{ job.benefits|replace('\n', '<br>')|safe }}</p>
+            {% endif %}
+        {% else %}
+            <div class="alert alert-info">
+                Para ver a descrição completa, requisitos e benefícios desta vaga você precisa ser um
+                <strong>candidato Premium</strong>.
+            </div>
+        {% endif %}
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Ação</h5>
+                {% if current_user.is_authenticated and current_user.role == 'candidate' %}
+                    {% if current_user.is_premium %}
+                        <a href="{{ url_for('candidate.apply', job_id=job.id) }}" class="btn btn-primary w-100 mb-2">
+                            Candidatar-se com meu perfil
+                        </a>
+                        <p class="small text-muted">Enviaremos automaticamente seus dados profissionais para a empresa.</p>
+                    {% else %}
+                        <p class="small mb-2">
+                            Você é candidato gratuito. Torne-se Premium para se candidatar a vagas e ver detalhes completos.
+                        </p>
+                    {% endif %}
+                {% else %}
+                    <p class="small mb-2">
+                        Faça login como candidato para se candidatar a esta vaga.
+                    </p>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary w-100 mb-2">Entrar</a>
+                    <a href="{{ url_for('auth.register_candidate') }}" class="btn btn-primary w-100">Criar conta de candidato</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

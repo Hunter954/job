@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+{% block title %}Meus Dados - EmpregaJá{% endblock %}
+
+{% block content %}
+<div class="container-xl my-4">
+
+  {% include "candidate/_profile_header.html" %}
+
+  <!-- Cards de métricas -->
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Candidaturas</div>
+          <div class="h4 mb-0">{{ applications_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Entrevistas</div>
+          <div class="h4 mb-0">{{ interviews_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Visualizações</div>
+          <div class="h4 mb-0">{{ views_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Interesses</div>
+          <div class="h4 mb-0">{{ interests_count }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs dashboard-tabs mb-3">
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('candidate.dashboard') }}">
+        Visão Geral
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('candidate.profile') }}">
+        Perfil Profissional
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link active" href="{{ url_for('candidate.personal_data') }}">
+        Meus Dados
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('candidate.applications') }}">
+        Candidaturas
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('candidate.interviews') }}">
+        Entrevistas
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('candidate.settings') }}">
+        Configurações
+      </a>
+    </li>
+  </ul>
+
+  <div class="row g-3">
+    <!-- Coluna principal: formulário de dados pessoais -->
+    <div class="col-lg-8">
+      <div class="card h-100">
+        <div class="card-body">
+
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+              <h3 class="h6 mb-0">Meus Dados</h3>
+              <p class="small text-slate-500 mb-0">
+                Informações pessoais e de contato
+              </p>
+            </div>
+          </div>
+
+          <form method="post" novalidate>
+            {{ form.csrf_token }}
+
+            <!-- Nome -->
+            <div class="mb-3">
+              <label class="form-label small text-slate-500 mb-1">Nome completo</label>
+              <input
+                type="text"
+                class="form-control"
+                name="full_name"
+                value="{{ current_user.full_name or '' }}"
+                placeholder="Seu nome completo">
+            </div>
+
+            <!-- ✅ NOVO: CEP (antes do endereço) -->
+            <div class="mb-3">
+              <label class="form-label small text-slate-500 mb-1">CEP</label>
+              <input
+                type="text"
+                class="form-control"
+                id="cep"
+                name="cep"
+                value="{{ profile.cep or '' }}"
+                placeholder="00000-000"
+                maxlength="9">
+              <div class="small text-danger mt-1 d-none" id="cep-error">
+                CEP inválido.
+              </div>
+            </div>
+
+            <!-- Endereço + Número -->
+            <div class="row g-3">
+              <div class="col-md-8">
+                <label class="form-label small text-slate-500 mb-1">Endereço</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  name="address"
+                  id="address"
+                  value="{{ profile.address or '' }}"
+                  placeholder="Rua, avenida, complemento...">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small text-slate-500 mb-1">Número</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  name="house_number"
+                  value="{{ profile.house_number or '' }}"
+                  placeholder="Número">
+              </div>
+            </div>
+
+            <!-- Cidade + Estado -->
+            <div class="row g-3 mt-2">
+              <div class="col-md-8">
+                <label class="form-label small text-slate-500 mb-1">Cidade</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  name="city"
+                  id="city"
+                  value="{{ profile.city or '' }}"
+                  placeholder="Cidade">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small text-slate-500 mb-1">Estado</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  name="state"
+                  id="state"
+                  value="{{ profile.state or '' }}"
+                  placeholder="UF"
+                  maxlength="2">
+              </div>
+            </div>
+
+            <!-- Bairro + Telefone -->
+            <div class="row g-3 mt-2">
+              <div class="col-md-6">
+                <label class="form-label small text-slate-500 mb-1">Bairro</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  name="neighborhood"
+                  id="neighborhood"
+                  value="{{ profile.neighborhood or '' }}"
+                  placeholder="Bairro">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small text-slate-500 mb-1">Telefone</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="phone"
+                  name="phone"
+                  value="{{ profile.phone or '' }}"
+                  placeholder="(00) 00000-0000"
+                  maxlength="15">
+              </div>
+            </div>
+
+            <!-- CPF + Data de Nascimento -->
+            <div class="row g-3 mt-2">
+              <div class="col-md-6">
+                <label class="form-label small text-slate-500 mb-1">CPF</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="cpf"
+                  name="cpf"
+                  value="{{ profile.cpf or '' }}"
+                  placeholder="000.000.000-00"
+                  maxlength="14">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small text-slate-500 mb-1">Data de nascimento</label>
+                <input
+                  type="date"
+                  class="form-control"
+                  name="birthdate"
+                  value="{{ profile.birthdate.strftime('%Y-%m-%d') if profile.birthdate else '' }}">
+              </div>
+            </div>
+
+            <!-- Sexo -->
+            <div class="mt-3">
+              <label class="form-label small text-slate-500 mb-1">Sexo</label>
+              <select class="form-control" name="gender">
+                <option value="">Selecione</option>
+                <option value="M" {% if profile.gender == 'M' %}selected{% endif %}>Masculino</option>
+                <option value="F" {% if profile.gender == 'F' %}selected{% endif %}>Feminino</option>
+              </select>
+            </div>
+
+            <div class="mt-4 d-flex justify-content-between flex-wrap gap-2">
+              <button type="submit" class="btn btn-primary">
+                Salvar dados
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Coluna direita: info/ajuda -->
+    <div class="col-lg-4 d-flex flex-column gap-3">
+      <div class="card">
+        <div class="card-body">
+          <h3 class="h6 mb-1">Privacidade dos seus dados</h3>
+          <p class="small text-slate-500 mb-2">
+            Suas informações pessoais não são exibidas diretamente para as empresas.
+            Apenas o necessário é compartilhado quando você participa de um processo seletivo.
+          </p>
+          <ul class="pricing-list mb-0">
+            <li>Nome e cidade para identificação</li>
+            <li>Contato apenas para entrevistas</li>
+            <li>CPF e data de nascimento não são exibidos às empresas</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ============================= -->
+<!-- SCRIPTS: CEP + MÁSCARAS -->
+<!-- ============================= -->
+<script>
+  function onlyDigits(str) {
+    return (str || "").replace(/\D/g, "");
+  }
+
+  /* ============================= */
+  /* CEP (ViaCEP) + Máscara */
+  /* ============================= */
+  const cepInput = document.getElementById("cep");
+  const cepError = document.getElementById("cep-error");
+
+  function setValueById(id, value) {
+    const el = document.getElementById(id);
+    if (el && value) el.value = value;
+  }
+
+  async function fetchCep(cep) {
+    const clean = onlyDigits(cep);
+    if (clean.length !== 8) return;
+
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${clean}/json/`);
+      const data = await res.json();
+
+      if (data.erro) {
+        cepError.classList.remove("d-none");
+        return;
+      }
+
+      cepError.classList.add("d-none");
+
+      setValueById("address", data.logradouro);
+      setValueById("neighborhood", data.bairro);
+      setValueById("city", data.localidade);
+      setValueById("state", data.uf);
+
+    } catch (e) {
+      cepError.classList.remove("d-none");
+    }
+  }
+
+  // máscara 00000-000
+  cepInput.addEventListener("input", (e) => {
+    let v = onlyDigits(e.target.value).slice(0, 8);
+    if (v.length > 5) v = v.slice(0, 5) + "-" + v.slice(5);
+    e.target.value = v;
+
+    if (onlyDigits(v).length === 8) fetchCep(v);
+  });
+
+  cepInput.addEventListener("blur", (e) => fetchCep(e.target.value));
+
+  /* ============================= */
+  /* Telefone: (46) 98818-6464 */
+  /* ============================= */
+  const phoneInput = document.getElementById("phone");
+  phoneInput.addEventListener("input", function(e) {
+    let v = onlyDigits(e.target.value).slice(0, 11);
+
+    if (v.length > 10) {
+      v = v.replace(/^(\d{2})(\d)/g, "($1) $2");
+      v = v.replace(/(\d{5})(\d)/, "$1-$2");
+    } else if (v.length > 5) {
+      v = v.replace(/^(\d{2})(\d)/g, "($1) $2");
+      v = v.replace(/(\d{4})(\d)/, "$1-$2");
+    } else if (v.length > 2) {
+      v = v.replace(/^(\d{2})(\d+)/, "($1) $2");
+    }
+
+    e.target.value = v;
+  });
+
+  /* ============================= */
+  /* CPF: 107.927.179-10 */
+  /* ============================= */
+  const cpfInput = document.getElementById("cpf");
+  cpfInput.addEventListener("input", function(e) {
+    let v = onlyDigits(e.target.value).slice(0, 11);
+
+    if (v.length > 9) {
+      v = v.replace(/^(\d{3})(\d)/, "$1.$2");
+      v = v.replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3");
+      v = v.replace(/\.(\d{3})(\d)/, ".$1-$2");
+    } else if (v.length > 6) {
+      v = v.replace(/^(\d{3})(\d)/, "$1.$2");
+      v = v.replace(/^(\d{3})\.(\d{3})(\d+)/, "$1.$2.$3");
+    } else if (v.length > 3) {
+      v = v.replace(/^(\d{3})(\d+)/, "$1.$2");
+    }
+
+    e.target.value = v;
+  });
+</script>
+
+{% endblock %}

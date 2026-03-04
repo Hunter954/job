@@ -1,0 +1,62 @@
+{# templates/candidate/_profile_header.html #}
+{% set percent = completion_percent or 0 %}
+{% set location_label =
+    (profile.city ~ (", " ~ profile.state if profile.state else ""))
+    if profile and (profile.city or profile.state) else "Localização não informada"
+%}
+
+<div class="candidate-header-card mb-3">
+  <div class="candidate-header-inner">
+
+    <!-- LEFT: avatar + infos -->
+    <div class="candidate-header-left">
+
+      <div class="candidate-avatar-circle">
+        {% if profile and profile.avatar_filename %}
+          <img
+            src="{{ url_for('static', filename='uploads/' ~ profile.avatar_filename) }}"
+            alt="Foto do perfil"
+            class="candidate-avatar-img"
+            loading="lazy">
+        {% else %}
+          <span class="candidate-avatar-initials">
+            {{ profile.initials() if profile and profile.initials()
+               else (current_user.full_name[:2] if current_user.full_name else "EU") }}
+          </span>
+        {% endif %}
+      </div>
+
+      <div class="candidate-header-text">
+        <h2 class="candidate-name mb-1">
+          {{ current_user.full_name or "Seu nome completo" }}
+        </h2>
+
+        <p class="candidate-profession mb-1">
+          {{ profile.profession or "Profissão ainda não informada" }}
+        </p>
+
+        <p class="candidate-meta mb-0">
+          <span class="me-3">
+            <i class="bi bi-geo-alt me-1"></i>{{ location_label }}
+          </span>
+          {% if profile and profile.experience_years %}
+            <span>
+              <i class="bi bi-clock-history me-1"></i>{{ profile.experience_years }} anos de exp.
+            </span>
+          {% endif %}
+        </p>
+      </div>
+    </div>
+
+    <!-- RIGHT: barra de progresso somente -->
+    <div class="candidate-header-right">
+      <div class="candidate-progress-label">
+        Perfil completo: {{ percent }}%
+      </div>
+      <div class="candidate-progress-line">
+        <div class="candidate-progress-fill" style="width: {{ percent }}%;"></div>
+      </div>
+    </div>
+
+  </div>
+</div>

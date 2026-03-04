@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Admin - Vagas{% endblock %}
+
+{% block content %}
+<div class="container-xl py-4">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h2 class="m-0">Vagas</h2>
+    <a class="btn btn-sm btn-outline-light" href="{{ url_for('admin.dashboard') }}">Voltar</a>
+  </div>
+
+  <div class="card bg-dark text-light">
+    <div class="table-responsive">
+      <table class="table table-dark table-hover m-0 align-middle">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Título</th>
+            <th>Empresa</th>
+            <th>Cidade</th>
+            <th>Status</th>
+            <th>Destaque</th>
+            <th class="text-end">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for j in jobs %}
+          <tr>
+            <td>{{ j.id }}</td>
+            <td>{{ j.title }}</td>
+            <td>{{ j.company_profile.user.company_name if j.company_profile and j.company_profile.user else '-' }}</td>
+            <td>{{ j.city }}</td>
+            <td>{% if j.is_active %}<span class="badge text-bg-success">ativa</span>{% else %}<span class="badge text-bg-secondary">inativa</span>{% endif %}</td>
+            <td>{% if j.is_sponsored %}<span class="badge text-bg-warning">sim</span>{% else %}<span class="badge text-bg-secondary">não</span>{% endif %}</td>
+            <td class="text-end">
+              <form class="d-inline" method="post" action="{{ url_for('admin.toggle_job', job_id=j.id) }}">
+                <button class="btn btn-sm btn-outline-light" type="submit">Ativar/Desativar</button>
+              </form>
+              <form class="d-inline" method="post" action="{{ url_for('admin.toggle_job_sponsored', job_id=j.id) }}">
+                <button class="btn btn-sm btn-outline-warning" type="submit">Destaque</button>
+              </form>
+              <form class="d-inline" method="post" action="{{ url_for('admin.delete_job', job_id=j.id) }}" onsubmit="return confirm('Remover vaga?');">
+                <button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="text-secondary">Nenhuma vaga.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

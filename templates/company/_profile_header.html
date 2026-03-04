@@ -1,0 +1,46 @@
+<div class="candidate-header-card mb-3">
+  <div class="candidate-header-inner">
+    <!-- esquerda: avatar / infos -->
+    <div class="candidate-header-left">
+      <div class="candidate-avatar-circle">
+        {{ current_user.company_name[:2].upper() if current_user.company_name else "EM" }}
+      </div>
+
+      <div class="candidate-header-text">
+        <h2 class="candidate-name mb-1">
+          {{ current_user.company_name or "Nome da empresa" }}
+        </h2>
+        <p class="candidate-profession mb-1">
+          {{ profile.city or "Cidade não informada" }}
+        </p>
+        <p class="candidate-meta mb-0">
+          {% if profile.city %}
+            <span class="me-3">
+              <i class="bi bi-geo-alt me-1"></i>{{ profile.city }}
+            </span>
+          {% endif %}
+          {% if profile.phone %}
+            <span class="me-3">
+              <i class="bi bi-telephone me-1"></i>{{ profile.phone }}
+            </span>
+          {% endif %}
+          {% if profile.website %}
+            <span>
+              <i class="bi bi-globe me-1"></i>{{ profile.website }}
+            </span>
+          {% endif %}
+        </p>
+      </div>
+    </div>
+
+    <!-- direita: barra de progresso -->
+    <div class="candidate-header-right">
+      <div class="candidate-progress-label">
+        Perfil da empresa completo: {{ completion_percent }}%
+      </div>
+      <div class="candidate-progress-line">
+        <div class="candidate-progress-fill" style="width: {{ completion_percent }}%;"></div>
+      </div>
+    </div>
+  </div>
+</div>

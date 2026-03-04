@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Minhas Candidaturas - EmpregaJá{% endblock %}
+
+{% block content %}
+<div class="container-xl my-4">
+
+  {% include "candidate/_profile_header.html" %}
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs dashboard-tabs mb-3">
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('candidate.dashboard') }}">Visão Geral</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('candidate.profile') }}">Perfil Profissional</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('candidate.personal_data') }}">Meus Dados</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link active" href="{{ url_for('candidate.applications') }}">Candidaturas</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('candidate.interviews') }}">Entrevistas</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('candidate.settings') }}">Configurações</a>
+    </li>
+  </ul>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h3 class="h6 mb-1">Minhas Candidaturas</h3>
+          <p class="small text-slate-500 mb-0">
+            Acompanhe o status das suas candidaturas
+          </p>
+        </div>
+      </div>
+
+      {% if applications %}
+        <div class="list-group list-group-flush">
+          {% for app in applications %}
+            {% set job = app.job %}
+            <div class="list-group-item application-item">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+                <!-- Esquerda: vaga -->
+                <div class="d-flex align-items-center gap-3">
+                  <div class="application-icon">
+                    <i class="bi bi-building"></i>
+                  </div>
+                  <div>
+                    <div class="fw-semibold small mb-1">
+                      {{ job.title if job else "Vaga removida" }}
+                    </div>
+                    <div class="small text-slate-500">
+                      {% if job and job.company_profile and job.company_profile.user %}
+                        {{ job.company_profile.user.company_name }}
+                      {% else %}
+                        Empresa confidencial
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Centro: data -->
+                <div class="small text-slate-500">
+                  {{ app.created_at.strftime("%Y-%m-%d") if app.created_at else "" }}
+                </div>
+
+                <!-- Direita: status + descandidatar -->
+                <div class="d-flex flex-column align-items-end gap-2">
+
+                  {# Badge de status #}
+                  {% set status = app.status or "enviado" %}
+                  {% if status == "enviado" %}
+                    <span class="badge bg-secondary-subtle text-secondary-emphasis">
+                      Enviada
+                    </span>
+                  {% elif status == "em_analise" %}
+                    <span class="badge bg-info-subtle text-info-emphasis">
+                      Em análise
+                    </span>
+                  {% elif status == "entrevista_marcada" %}
+                    <span class="badge bg-primary-subtle text-primary-emphasis">
+                      Entrevista agendada
+                    </span>
+                  {% elif status == "rejeitado" %}
+                    <span class="badge bg-danger-subtle text-danger-emphasis">
+                      Rejeitada
+                    </span>
+                  {% elif status == "contratado" %}
+                    <span class="badge bg-success-subtle text-success-emphasis">
+                      Aprovado
+                    </span>
+                  {% elif status == "cancelada_pelo_candidato" %}
+                    <span class="badge bg-outline text-slate-500">
+                      Cancelada por você
+                    </span>
+                  {% else %}
+                    <span class="badge bg-light text-muted">
+                      {{ status }}
+                    </span>
+                  {% endif %}
+
+                  {# Botão Descandidatar (só se ainda não tiver entrevista) #}
+                  {% if (not app.interview_datetime) and status in ["enviado", "em_analise"] %}
+                    <form method="post"
+                          action="{{ url_for('candidate.cancel_application', application_id=app.id) }}"
+                          onsubmit="return confirm('Tem certeza que deseja se descandidatar dessa vaga?');">
+                      {{ csrf_token() if csrf_token is defined }}
+                      <button type="submit" class="btn btn-sm btn-outline-load">
+                        Descandidatar
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="small text-slate-500 mb-0">
+          Você ainda não se candidatou a nenhuma vaga. Use o botão "Candidatar" na home
+          ou nas páginas de vagas para começar.
+        </p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,395 @@
+{% extends "base.html" %}
+{% block title %}Painel da Empresa - EmpregaJá{% endblock %}
+
+{% block content %}
+<div class="container-xl my-4">
+
+  {% include "company/_profile_header.html" %}
+
+  <!-- Cards métricas -->
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-md-4">
+      <div class="card stat-card h-100">
+        <div class="card-body">
+          <div class="small text-slate-500 mb-1">Vagas publicadas</div>
+          <div class="h4 mb-0">{{ jobs_count }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-4">
+      <div class="card stat-card h-100">
+        <div class="card-body">
+          <div class="small text-slate-500 mb-1">Candidaturas recebidas</div>
+          <div class="h4 mb-0">{{ applications_count }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+      <div class="card stat-card h-100">
+        <div class="card-body">
+          <div class="small text-slate-500 mb-1">Entrevistas</div>
+          <div class="h4 mb-0">{{ interviews_count }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs dashboard-tabs mb-3">
+    <li class="nav-item">
+      <a class="nav-link active" href="{{ url_for('company.dashboard') }}">Visão Geral</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('company.jobs') }}">Vagas</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('company.candidates') }}">Candidatos</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('company.settings') }}">Configurações</a>
+    </li>
+  </ul>
+
+  <div class="row g-3">
+
+    <div class="col-lg-8 d-flex flex-column gap-3">
+
+      <!-- Candidatos Recomendados -->
+      <div class="card">
+        <div class="card-body">
+
+          <h3 class="h6 mb-3">Candidatos Recomendados</h3>
+
+          {% if recommended_candidates %}
+
+          <div class="row g-3">
+            {% for cand in recommended_candidates %}
+
+              {% set pode_ver_nome =
+                (current_user.is_authenticated and current_user.role == 'company' and current_user.is_premium)
+              %}
+
+              <div class="col-md-6">
+                <div class="card candidate-row-card h-100">
+                  <div class="card-body">
+
+                    <!-- Parte superior -->
+                    <div class="d-flex align-items-center gap-3 mb-3">
+
+                      <!-- Avatar -->
+                      <div class="candidate-row-avatar">
+                        {% if cand.avatar_filename %}
+                          <img src="{{ url_for('static', filename='uploads/' ~ cand.avatar_filename) }}"
+                               class="candidate-row-avatar-img"
+                               alt="Foto">
+                        {% else %}
+                          <div class="candidate-row-avatar-fallback">
+                            {{ cand.initials() }}
+                          </div>
+                        {% endif %}
+                      </div>
+
+                      <!-- Infos -->
+                      <div class="flex-grow-1 min-w-0">
+                        <div class="fw-semibold text-truncate">
+                          {% if pode_ver_nome %}
+                            {{ cand.user.full_name if cand.user else "Candidato" }}
+                          {% else %}
+                            {% set parts = (cand.user.full_name if cand.user and cand.user.full_name else '').split() %}
+                            {% if parts|length >= 2 %}
+                              {{ parts[0] }} {{ parts[-1][0] }}******
+                            {% elif parts|length == 1 %}
+                              {{ parts[0] }}
+                            {% else %}
+                              Candidato Anônimo
+                            {% endif %}
+                          {% endif %}
+                        </div>
+
+                        <div class="small text-slate-500 text-truncate">
+                          {{ cand.profession or "Profissão não informada" }}
+                        </div>
+
+                        <div class="small text-slate-500 mt-1">
+                          <i class="bi bi-geo-alt me-1"></i>
+                          {{ cand.city or "Cidade não informada" }}
+                        </div>
+                      </div>
+
+                    </div>
+
+                    <!-- Botões bonitos e alinhados -->
+                    <div class="row g-2">
+                      <div class="col-6">
+                        <a href="#"
+                           class="btn btn-outline-load btn-sm w-100 btn-pill"
+                           data-bs-toggle="modal"
+                           data-bs-target="#candidateModal{{ cand.id }}">
+                          <i class="bi bi-person me-1"></i> Ver Perfil
+                        </a>
+                      </div>
+
+                      <div class="col-6">
+                        <form method="post"
+                              action="{{ url_for('company.contact_candidate', candidate_id=cand.id) }}"
+                              class="m-0">
+                          {{ csrf_token() if csrf_token is defined }}
+                          <button type="submit"
+                                  class="btn btn-primary btn-sm w-100 btn-pill">
+                            <i class="bi bi-chat-dots me-1"></i> Contatar
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+
+              <!-- Modal: Perfil do candidato -->
+              <div class="modal fade" id="candidateModal{{ cand.id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">
+                        <i class="bi bi-person-vcard me-2"></i> Perfil do candidato
+                      </h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body">
+
+                      <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="candidate-row-avatar" style="width:64px;height:64px;">
+                          {% if cand.avatar_filename %}
+                            <img src="{{ url_for('static', filename='uploads/' ~ cand.avatar_filename) }}"
+                                 class="candidate-row-avatar-img" alt="Foto">
+                          {% else %}
+                            <div class="candidate-row-avatar-fallback" style="font-size:16px;">
+                              {{ cand.initials() }}
+                            </div>
+                          {% endif %}
+                        </div>
+                        <div class="min-w-0">
+                          <div class="fw-semibold">
+                            {% if pode_ver_nome %}
+                              {{ cand.user.full_name if cand.user else "Candidato" }}
+                            {% else %}
+                              <span class="text-slate-500">Nome completo disponível apenas no Premium.</span>
+                            {% endif %}
+                          </div>
+                          <div class="small text-slate-500">
+                            {{ cand.profession or "Profissão não informada" }}
+                          </div>
+                          <div class="small text-slate-500">
+                            <i class="bi bi-geo-alt me-1"></i>
+                            {{ cand.city or "Cidade não informada" }}
+                            {% if cand.neighborhood %} · {{ cand.neighborhood }}{% endif %}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="row g-3">
+                        <div class="col-md-6">
+                          <div class="p-3 rounded-3 border" style="border-color: rgba(148,163,184,.35);">
+                            <div class="small text-slate-500 mb-2">Dados</div>
+
+                            <div class="d-flex justify-content-between gap-2">
+                              <div class="text-slate-500">Idade</div>
+                              <div class="fw-medium">
+                                {{ cand.age() if cand.age() is not none else "Não informada" }}
+                              </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between gap-2 mt-2">
+                              <div class="text-slate-500">Cidade</div>
+                              <div class="fw-medium">{{ cand.city or "Não informada" }}</div>
+                            </div>
+
+                            <div class="d-flex justify-content-between gap-2 mt-2">
+                              <div class="text-slate-500">Bairro</div>
+                              <div class="fw-medium">{{ cand.neighborhood or "Não informado" }}</div>
+                            </div>
+
+                            <div class="d-flex justify-content-between gap-2 mt-2">
+                              <div class="text-slate-500">Disponibilidade</div>
+                              <div class="fw-medium">{{ cand.availability or "Não informada" }}</div>
+                            </div>
+
+                            <div class="d-flex justify-content-between gap-2 mt-2">
+                              <div class="text-slate-500">Escolaridade</div>
+                              <div class="fw-medium">{{ cand.education_level or "Não informada" }}</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div class="col-md-6">
+                          <div class="p-3 rounded-3 border" style="border-color: rgba(148,163,184,.35);">
+                            <div class="small text-slate-500 mb-2">Competências</div>
+
+                            <div class="mb-2">
+                              <div class="text-slate-500">Habilidades</div>
+                              <div class="fw-medium">
+                                {% if cand.skills %}
+                                  {% set skills_list = cand.skills.replace('\n', ',').split(',') %}
+                                  {% for s in skills_list %}
+                                    {% set s = s.strip() %}
+                                    {% if s %}<span class="badge rounded-pill text-bg-light me-1 mb-1">{{ s }}</span>{% endif %}
+                                  {% endfor %}
+                                {% else %}
+                                  Não informadas
+                                {% endif %}
+                              </div>
+                            </div>
+
+                            <div>
+                              <div class="text-slate-500">Idiomas</div>
+                              <div class="fw-medium">
+                                {% if cand.languages %}
+                                  {% set lang_list = cand.languages.replace('\n', ',').split(',') %}
+                                  {% for l in lang_list %}
+                                    {% set l = l.strip() %}
+                                    {% if l %}<span class="badge rounded-pill text-bg-light me-1 mb-1">{{ l }}</span>{% endif %}
+                                  {% endfor %}
+                                {% else %}
+                                  Não informados
+                                {% endif %}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div class="col-12">
+                          <div class="p-3 rounded-3 border" style="border-color: rgba(148,163,184,.35);">
+                            <div class="small text-slate-500 mb-2">Sobre</div>
+                            <div class="text-slate-700">
+                              {{ cand.bio or "Sem descrição." }}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div class="col-12">
+                          <div class="p-3 rounded-3 border" style="border-color: rgba(148,163,184,.35);">
+                            <div class="small text-slate-500 mb-2">Experiência profissional</div>
+                            {% set exps = candidate_experiences.get(cand.id, []) if candidate_experiences is defined else [] %}
+                            {% if exps and exps|length > 0 %}
+                              <div class="vstack gap-2">
+                                {% for e in exps %}
+                                  <div class="d-flex justify-content-between align-items-start gap-3">
+                                    <div>
+                                      <div class="fw-semibold">{{ e.role or 'Cargo não informado' }}</div>
+                                      <div class="small text-slate-500">{{ e.company_name or 'Empresa não informada' }}</div>
+                                    </div>
+                                    <div class="small text-slate-500 text-nowrap">{{ e.period_label() }}</div>
+                                  </div>
+                                  {% if not loop.last %}<hr class="my-1">{% endif %}
+                                {% endfor %}
+                              </div>
+                            {% else %}
+                              <div class="text-slate-700">Não informada.</div>
+                            {% endif %}
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-outline-secondary btn-pill" data-bs-dismiss="modal">
+                        Fechar
+                      </button>
+                      <form method="post"
+                            action="{{ url_for('company.contact_candidate', candidate_id=cand.id) }}"
+                            class="m-0">
+                        {{ csrf_token() if csrf_token is defined }}
+                        <button type="submit" class="btn btn-primary btn-pill">
+                          <i class="bi bi-chat-dots me-1"></i> Contatar
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            {% endfor %}
+          </div>
+
+          {% if not current_user.is_premium %}
+            <div class="mt-3">
+              <p class="small text-slate-500 mb-0">
+                Nome completo disponível apenas no Premium.
+              </p>
+            </div>
+          {% endif %}
+
+          {% else %}
+            <p class="small text-slate-500 mb-0">
+              Ainda não há recomendações de candidatos.
+            </p>
+          {% endif %}
+
+        </div>
+      </div>
+
+      <!-- Estilo leve do card -->
+      <style>
+        .candidate-row-card {
+          border: 1px solid rgba(148,163,184,.35);
+          border-radius: 14px;
+          transition: .2s ease;
+        }
+        .candidate-row-card:hover {
+          box-shadow: 0 6px 18px rgba(0,0,0,.08);
+        }
+        .candidate-row-avatar {
+          width: 50px;
+          height: 50px;
+          border-radius: 999px;
+          overflow: hidden;
+          background: #f1f5f9;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 600;
+        }
+        .candidate-row-avatar-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .candidate-row-avatar-fallback {
+          font-size: 13px;
+          color: #0f172a;
+        }
+        .btn-pill {
+          border-radius: 12px;
+          padding: .55rem .75rem;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: .25rem;
+        }
+      </style>
+
+    </div>
+
+    <!-- Coluna direita -->
+    <div class="col-lg-4">
+      <div class="card h-100">
+        <div class="card-body d-flex flex-column">
+          <h3 class="h6 mb-1">Destaque suas vagas</h3>
+          <p class="small text-slate-500 mb-3">
+            Aumente o alcance das suas oportunidades ativando o plano Premium.
+          </p>
+          <div class="mt-auto">
+            <a href="{{ url_for('main.index') }}#planos" class="btn btn-primary w-100">
+              Assinar Premium
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

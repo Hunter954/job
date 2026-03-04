@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Interesses de empresas{% endblock %}
+{% block content %}
+<h2 class="mb-3">Empresas interessadas no seu perfil</h2>
+<div class="list-group">
+    {% for interest in interests %}
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+                <div class="fw-bold">{{ interest.company_profile.user.company_name }}</div>
+                {% if interest.interview_datetime %}
+                    <div class="small">
+                        Entrevista: {{ interest.interview_datetime.strftime("%d/%m/%Y %H:%M") }} - {{ interest.interview_location }}
+                    </div>
+                {% endif %}
+                {% if interest.notes %}
+                    <div class="small text-muted">{{ interest.notes }}</div>
+                {% endif %}
+            </div>
+            <div>
+                {% if not interest.candidate_confirmed and interest.interview_datetime %}
+                    <a href="{{ url_for('candidate.confirm_interest', interest_id=interest.id) }}" class="btn btn-sm btn-success">Confirmar presença</a>
+                {% elif interest.candidate_confirmed %}
+                    <span class="badge bg-success">Presença confirmada</span>
+                {% endif %}
+            </div>
+        </div>
+    {% else %}
+        <p>Nenhuma empresa demonstrou interesse ainda.</p>
+    {% endfor %}
+</div>
+{% endblock %}

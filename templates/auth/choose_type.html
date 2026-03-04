@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Criar conta - EmpregaJá{% endblock %}
+
+{% block content %}
+<div class="auth-page-wrapper">
+  <div class="auth-card auth-choose-card">
+
+    <h1 class="auth-title mb-2">
+      Como você quer se <span>cadastrar</span>?
+    </h1>
+    <p class="auth-subtitle mb-4">
+      Escolha o tipo de conta que melhor se encaixa no seu perfil
+    </p>
+
+    <input type="hidden" id="role-input" value="">
+
+    <div class="row g-3 mb-4">
+      <!-- Sou Candidato -->
+      <div class="col-md-6">
+        <div class="choose-type-card" data-role="candidate">
+          <div class="choose-type-icon">
+            <i class="bi bi-person"></i>
+          </div>
+          <h3 class="choose-type-title">Sou Candidato</h3>
+          <p class="choose-type-text">
+            Quero encontrar vagas de emprego e criar meu perfil profissional.
+          </p>
+        </div>
+      </div>
+
+      <!-- Sou Empresa -->
+      <div class="col-md-6">
+        <div class="choose-type-card" data-role="company">
+          <div class="choose-type-icon">
+            <i class="bi bi-building"></i>
+          </div>
+          <h3 class="choose-type-title">Sou Empresa</h3>
+          <p class="choose-type-text">
+            Quero publicar vagas e encontrar candidatos qualificados.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <button type="button" class="btn auth-submit-btn w-100 mb-3" id="choose-submit-btn" disabled>
+      Continuar <span class="ms-1">→</span>
+    </button>
+
+    <p class="auth-bottom-text mb-0">
+      Já tem uma conta?
+      <a href="{{ url_for('auth.login') }}" class="auth-link-primary">
+        Faça login
+      </a>
+    </p>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const cards = document.querySelectorAll(".choose-type-card");
+    const roleInput = document.getElementById("role-input");
+    const submitBtn = document.getElementById("choose-submit-btn");
+
+    const registerCandidateUrl = "{{ url_for('auth.register_candidate') }}";
+    const registerCompanyUrl = "{{ url_for('auth.register_company') }}";
+
+    function updateButtonState() {
+      if (roleInput.value) {
+        submitBtn.removeAttribute("disabled");
+      } else {
+        submitBtn.setAttribute("disabled", "disabled");
+      }
+    }
+
+    cards.forEach(card => {
+      card.addEventListener("click", function () {
+        cards.forEach(c => c.classList.remove("active"));
+        this.classList.add("active");
+        roleInput.value = this.getAttribute("data-role");
+        updateButtonState();
+      });
+    });
+
+    submitBtn.addEventListener("click", function () {
+      const role = roleInput.value;
+      if (!role) return;
+
+      if (role === "candidate") {
+        window.location.href = registerCandidateUrl;
+      } else if (role === "company") {
+        window.location.href = registerCompanyUrl;
+      }
+    });
+
+    updateButtonState();
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Admin - Usuários{% endblock %}
+
+{% block content %}
+<div class="container-xl py-4">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h2 class="m-0">Usuários</h2>
+    <a class="btn btn-sm btn-outline-light" href="{{ url_for('admin.dashboard') }}">Voltar</a>
+  </div>
+
+  <div class="d-flex gap-2 mb-3">
+    <a class="btn btn-sm {% if not role %}btn-light{% else %}btn-outline-light{% endif %}" href="{{ url_for('admin.users') }}">Todos</a>
+    <a class="btn btn-sm {% if role=='candidate' %}btn-light{% else %}btn-outline-light{% endif %}" href="{{ url_for('admin.users', role='candidate') }}">Candidatos</a>
+    <a class="btn btn-sm {% if role=='company' %}btn-light{% else %}btn-outline-light{% endif %}" href="{{ url_for('admin.users', role='company') }}">Empresas</a>
+    <a class="btn btn-sm {% if role=='admin' %}btn-light{% else %}btn-outline-light{% endif %}" href="{{ url_for('admin.users', role='admin') }}">Admins</a>
+  </div>
+
+  <div class="card bg-dark text-light">
+    <div class="table-responsive">
+      <table class="table table-dark table-hover m-0 align-middle">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>E-mail</th>
+            <th>Nome/Empresa</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Premium</th>
+            <th class="text-end">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td>{{ u.id }}</td>
+            <td>{{ u.email }}</td>
+            <td>{{ u.full_name or u.company_name or '-' }}</td>
+            <td><span class="badge text-bg-info">{{ u.role }}</span></td>
+            <td>
+              {% if u.is_active %}<span class="badge text-bg-success">ativo</span>{% else %}<span class="badge text-bg-secondary">desativado</span>{% endif %}
+            </td>
+            <td>
+              {% if u.is_premium %}<span class="badge text-bg-warning">sim</span>{% else %}<span class="badge text-bg-secondary">não</span>{% endif %}
+            </td>
+            <td class="text-end">
+              <form class="d-inline" method="post" action="{{ url_for('admin.toggle_user_active', user_id=u.id) }}">
+                <button class="btn btn-sm btn-outline-light" type="submit">Ativar/Desativar</button>
+              </form>
+              <form class="d-inline" method="post" action="{{ url_for('admin.toggle_user_premium', user_id=u.id) }}">
+                <button class="btn btn-sm btn-outline-warning" type="submit">Premium</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="text-secondary">Nenhum usuário.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

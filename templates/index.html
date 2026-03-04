@@ -1,0 +1,558 @@
+{% extends "base.html" %}
+{% block title %}EmpregaJá - Conectando talentos às melhores oportunidades{% endblock %}
+
+{% block content %}
+
+{% macro obfuscate_company(name) -%}
+  {%- if name -%}
+    {{ name[0] ~ '******' }}
+  {%- else -%}
+    Empresa confidencial
+  {%- endif -%}
+{%- endmacro %}
+
+<!-- HERO -->
+<section class="hero-section">
+    <div class="hero-gradient"></div>
+    <div class="container-xl position-relative">
+        <div class="hero-inner">
+            <div class="hero-badge">A nova forma de encontrar oportunidades</div>
+            <h1 class="hero-title">
+                Conectando <span class="text-accent">talentos</span><br>
+                às melhores <span class="text-accent">oportunidades</span>
+            </h1>
+            <p class="hero-subtitle">
+                Encontre sua próxima vaga ou descubra profissionais qualificados. Uma
+                plataforma moderna que revoluciona a forma como você busca emprego.
+            </p>
+            <div class="hero-actions">
+                {% if current_user.is_authenticated and current_user.role == 'candidate' %}
+                    <a href="{{ url_for('candidate.dashboard') }}" class="btn btn-hero-primary">
+                        Começar Agora
+                    </a>
+                {% elif current_user.is_authenticated and current_user.role == 'company' %}
+                    <a href="{{ url_for('company.dashboard') }}" class="btn btn-hero-primary">
+                        Começar Agora
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('auth.choose_type') }}" class="btn btn-hero-primary">
+                        Começar Agora
+                    </a>
+                {% endif %}
+                <a href="{{ url_for('main.job_list') }}" class="btn btn-hero-secondary">
+                    <span class="hero-secondary-icon">⌕</span>
+                    Explorar Vagas
+                </a>
+            </div>
+            <div class="hero-stats row g-3 mt-4">
+                <div class="col-6 col-md-3">
+                    <div class="hero-stat-card">
+                        <div class="hero-stat-value">2.500+</div>
+                        <div class="hero-stat-label">Empresas</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="hero-stat-card">
+                        <div class="hero-stat-value">50.000+</div>
+                        <div class="hero-stat-label">Candidatos</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="hero-stat-card">
+                        <div class="hero-stat-value">8.000+</div>
+                        <div class="hero-stat-label">Vagas Ativas</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="hero-stat-card">
+                        <div class="hero-stat-value">15.000+</div>
+                        <div class="hero-stat-label">Contratações</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{# ================== VAGAS DISPONÍVEIS ================== #}
+<section class="section-block" id="vagas">
+    <div class="container-xl">
+        <div class="section-header d-flex align-items-end justify-content-between flex-wrap gap-3 mb-3">
+            <div>
+                <h2 class="section-title">Vagas <span class="text-accent">Disponíveis</span></h2>
+                <p class="section-subtitle">As melhores oportunidades esperando por você</p>
+            </div>
+            <div class="section-actions d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-outline-filter d-flex align-items-center gap-1">
+                    <span>Filtrar</span>
+                </button>
+            </div>
+        </div>
+
+        {% if jobs %}
+            <div class="row g-3">
+                {% for job in jobs %}
+                    <div class="col-md-6">
+                        <div class="job-card-light {% if job.is_sponsored %}job-card-light--sponsored{% endif %}">
+                            <div class="job-card-left">
+                                <!-- badges -->
+                                <div class="job-card-badges">
+                                    {% if job.is_sponsored %}
+                                        <span class="badge job-badge-sponsored">Patrocinado</span>
+                                    {% endif %}
+                                    {% if job.employment_type %}
+                                        <span class="badge job-badge-tag">{{ job.employment_type }}</span>
+                                    {% endif %}
+                                </div>
+
+                                <!-- título -->
+                                <h3 class="job-card-title small fw-semibold mb-1">{{ job.title }}</h3>
+
+                                <!-- linha de infos -->
+                                <div class="job-card-meta">
+                                    <span>
+                                        <i class="bi bi-building me-1"></i>
+                                        {% if job.company_profile and job.company_profile.user %}
+                                            {% set company_name = job.company_profile.user.company_name %}
+                                            {% set can_see_company = (current_user.is_authenticated and current_user.role == 'company') or (current_user.is_authenticated and current_user.role == 'candidate' and current_user.is_premium) %}
+                                            {% if can_see_company %}
+                                                {{ company_name }}
+                                            {% else %}
+                                                {{ obfuscate_company(company_name) }}
+                                            {% endif %}
+                                        {% else %}
+                                            Empresa confidencial
+                                        {% endif %}
+                                    </span>
+                                    <span>
+                                        <i class="bi bi-geo-alt me-1"></i>
+                                        {{ job.city or "Localização não informada" }}
+                                    </span>
+
+                                    {% if job.salary_min or job.salary_max %}
+                                        <span>
+                                            <i class="bi bi-cash-stack me-1"></i>
+                                            R$
+                                            {% if job.salary_min %}{{ "%.0f"|format(job.salary_min) }}{% endif %}
+                                            {% if job.salary_max %} - R$ {{ "%.0f"|format(job.salary_max) }}{% endif %}
+                                        </span>
+                                    {% endif %}
+
+                                    {% if job.created_at %}
+                                        <span>
+                                            <i class="bi bi-clock me-1"></i>
+                                            Publicada em {{ job.created_at.strftime("%d/%m/%Y") }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- botão direita -->
+                            <div class="job-card-right">
+                                {% if current_user.is_authenticated and current_user.role == 'candidate' %}
+                                    <a href="{{ url_for('candidate.apply', job_id=job.id) }}" class="btn btn-job-primary">
+                                        Candidatar
+                                    </a>
+                                {% else %}
+                                    <a href="{{ url_for('auth.choose_type') }}" class="btn btn-job-primary">
+                                        Candidatar
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="{{ url_for('main.job_list') }}" class="btn btn-outline-load">
+                    Carregar mais vagas →
+                </a>
+            </div>
+        {% else %}
+            <p class="small text-slate-500 mb-0">
+                Nenhuma vaga cadastrada ainda.
+            </p>
+        {% endif %}
+    </div>
+</section>
+
+<!-- CANDIDATOS DISPONÍVEIS -->
+<section class="section-block" id="profissionais">
+    <div class="container-xl">
+        <div class="section-header d-flex align-items-end justify-content-between flex-wrap gap-3 mb-3">
+            <div>
+                <h2 class="section-title">Candidatos <span class="text-accent">Disponíveis</span></h2>
+                <p class="section-subtitle">Encontre o candidato perfeito para sua empresa</p>
+            </div>
+            <div class="section-actions d-flex align-items-center gap-2">
+                <button class="btn btn-outline-filter d-flex align-items-center gap-1" type="button">
+                    <span>Filtrar</span>
+                </button>
+            </div>
+        </div>
+
+        {% if candidates %}
+            <div class="row g-3">
+                {% for cand in candidates %}
+                    {# ver nome completo: empresa premium OU dono do perfil #}
+                    {% set pode_ver_nome =
+                        (current_user.is_authenticated and current_user.role == 'company' and current_user.is_premium)
+                        or
+                        (current_user.is_authenticated and current_user.role == 'candidate' and current_user.id == cand.user.id)
+                    %}
+
+                    <div class="col-md-6 col-lg-3">
+<div class="candidate-card-flat h-100">
+
+  <!-- HEADER SOLID -->
+  <div class="ccf-header">
+    <div class="ccf-top">
+      <div class="ccf-avatar">
+        {% if cand.avatar_filename %}
+          <img
+            src="{{ url_for('static', filename='uploads/' ~ cand.avatar_filename) }}"
+            alt="Foto do candidato"
+            loading="lazy">
+        {% else %}
+          <span class="ccf-initials">{{ cand.initials() }}</span>
+        {% endif %}
+        <span class="ccf-status" title="Disponível"></span>
+      </div>
+
+      <div class="ccf-headtext">
+        <div class="ccf-name-row">
+          <div class="ccf-name">
+            {% if pode_ver_nome %}
+              {{ cand.user.full_name }}
+            {% else %}
+              {% set parts = (cand.user.full_name or '').split() %}
+              {% if parts|length >= 2 %}
+                {{ parts[0] }} {{ parts[-1][0] }}******
+              {% elif parts|length == 1 %}
+                {{ parts[0] }}
+              {% else %}
+                Candidato Anônimo
+              {% endif %}
+            {% endif %}
+          </div>
+
+          <div class="ccf-badges">
+            {% if cand.is_sponsored %}
+              <span class="ccf-badge ccf-badge-featured">
+                <i class="bi bi-stars me-1"></i>Destaque
+              </span>
+            {% endif %}
+            {% if cand.user.is_premium %}
+              <span class="ccf-badge ccf-badge-premium">
+                <i class="bi bi-patch-check-fill me-1"></i>Premium
+              </span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="ccf-role">
+          {{ cand.profession or "Profissão não informada" }}
+        </div>
+
+        <div class="ccf-meta">
+          <span class="ccf-pill ccf-pill-city">
+            <i class="bi bi-geo-alt me-1"></i>
+            {{ cand.city or "Não informada" }}
+          </span>
+
+          {% if cand.experience_years %}
+            <span class="ccf-pill ccf-pill-ghost">
+              <i class="bi bi-clock-history me-1"></i>
+              {{ cand.experience_years }} anos
+            </span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="ccf-body">
+
+    <!-- SOBRE -->
+    <div class="ccf-section">
+      <div class="ccf-label">
+        <i class="bi bi-chat-left-text me-2"></i>Sobre
+      </div>
+
+      <p class="ccf-text">
+        {% if cand.bio %}
+          {{ cand.bio|truncate(140) }}
+        {% else %}
+          Perfil em construção. Em breve, mais detalhes sobre experiência, foco e objetivos profissionais.
+        {% endif %}
+      </p>
+    </div>
+
+    <!-- HABILIDADES -->
+    {% if cand.skills %}
+      <div class="ccf-section">
+        <div class="ccf-label">
+          <i class="bi bi-lightning-charge me-2"></i>Habilidades
+        </div>
+        <div class="ccf-chips">
+          {% for skill in cand.skills.split(',') %}
+            {% set sk = skill.strip() %}
+            {% if sk %}
+              <span class="ccf-chip">{{ sk }}</span>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- IDIOMAS -->
+    {% if cand.languages %}
+      <div class="ccf-section">
+        <div class="ccf-label">
+          <i class="bi bi-translate me-2"></i>Idiomas
+        </div>
+        <div class="ccf-chips">
+          {% for lang in cand.languages.split(',') %}
+            {% set lg = lang.strip() %}
+            {% if lg %}
+              <span class="ccf-chip ccf-chip-soft">{{ lg }}</span>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- CTA -->
+    <div class="ccf-cta">
+      {% if current_user.is_authenticated and current_user.role == 'company' %}
+        <form method="post" action="{{ url_for('company.contact_candidate', candidate_id=cand.id) }}">
+          {{ csrf_token() if csrf_token is defined }}
+          <button class="ccf-btn" type="submit">
+            <i class="bi bi-envelope-paper me-2"></i>Contatar
+          </button>
+        </form>
+      {% else %}
+        <a href="{{ url_for('auth.choose_type') }}" class="ccf-btn text-decoration-none">
+          <i class="bi bi-envelope-paper me-2"></i>Contatar
+        </a>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-slate-400">Nenhum candidato em destaque ainda.</p>
+        {% endif %}
+
+        <div class="text-center mt-4">
+          {% if current_user.is_authenticated and current_user.role == 'company' %}
+            <a href="{{ url_for('company.dashboard') }}#candidatos" class="btn btn-outline-load">
+              Carregar mais candidatos →
+            </a>
+          {% else %}
+            <a href="{{ url_for('auth.register_company') }}" class="btn btn-outline-load">
+              Cadastre sua empresa para ver mais candidatos →
+            </a>
+          {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- PLANOS PREMIUM -->
+<section class="section-block" id="planos">
+    <div class="container-xl">
+        <div class="text-center mb-4">
+            <span class="section-badge">Premium</span>
+            <h2 class="section-title mt-2">Destaque seu <span class="text-accent">perfil</span></h2>
+            <p class="section-subtitle mx-auto mw-480">
+                Seja um usuário Premium e tenha acesso a recursos exclusivos que aumentam suas chances
+                de conseguir o emprego dos sonhos.
+            </p>
+        </div>
+        <div class="row justify-content-center g-3 pricing-row">
+            <div class="col-md-4">
+                <div class="card pricing-card">
+                    <div class="card-body">
+                        <p class="small text-slate-400 mb-1">Gratuito</p>
+                        <h3 class="pricing-title">Para começar</h3>
+                        <div class="pricing-price">
+                            <span class="price-currency">R$</span>
+                            <span class="price-number">0</span>
+                            <span class="price-period">/mês</span>
+                        </div>
+                        <ul class="pricing-list">
+                            <li>Criar perfil básico</li>
+                            <li>Ver vagas resumidas</li>
+                            <li>Receber interesse de empresas</li>
+                        </ul>
+                        <button class="btn btn-outline-load w-100 mt-2" type="button">
+                            Plano Atual
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card pricing-card pricing-card-highlight">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <div>
+                                <p class="small text-emerald-300 mb-1">Premium</p>
+                                <h3 class="pricing-title">Destaque total</h3>
+                            </div>
+                            <span class="badge badge-featured">Mais Popular</span>
+                        </div>
+                        <div class="pricing-price">
+                            <span class="price-currency">R$</span>
+                            <span class="price-number">29</span>
+                            <span class="price-period">/mês</span>
+                        </div>
+                        <ul class="pricing-list">
+                            <li>Ver todas as informações das vagas</li>
+                            <li>Candidatar-se ilimitadamente</li>
+                            <li>Perfil em destaque no ranking</li>
+                            <li>Badge Premium no perfil</li>
+                            <li>Suporte prioritário</li>
+                            <li>Estatísticas avançadas</li>
+                        </ul>
+                        <button class="btn btn-hero-primary w-100 mt-2" type="button">
+                            Assinar Premium
+                        </button>
+                        <p class="small text-slate-500 mt-2 mb-0 text-center">
+                            No painel admin você poderá marcar usuários como Premium.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+/* =========================================
+   AJUSTE DE CORES (IGUALAR "COMEÇAR AGORA")
+   ========================================= */
+
+/* 1) Coloque aqui as MESMAS cores do seu .btn-hero-primary (Começar Agora) */
+:root{
+  /* ajuste se necessário para bater 100% com o seu botão */
+  --hero-grad-start: #2563eb;  /* azul */
+  --hero-grad-end:   #06b6d4;  /* ciano/azul claro */
+  --hero-blue-solid: #1d4ed8;  /* fallback sólido */
+  --hero-shadow: 0 10px 24px rgba(37,99,235,.22);
+}
+
+/* 2) “Azul atrás da foto” (header do card do candidato) */
+.candidate-card-flat .ccf-header{
+  background: linear-gradient(135deg, var(--hero-grad-start), var(--hero-grad-end));
+}
+
+/* Se o seu header tiver pseudo-elemento/overlay gerando azul, zera aqui */
+.candidate-card-flat .ccf-header::before,
+.candidate-card-flat .ccf-header::after{
+  background: transparent !important;
+}
+
+/* Opcional: se existir um bloco atrás do avatar especificamente */
+.candidate-card-flat .ccf-avatar{
+  /* garante que não tenha fundo azul diferente */
+  background: transparent;
+}
+
+/* 3) Botão "Contatar" com o mesmo gradiente do Começar Agora */
+.candidate-card-flat .ccf-btn{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+
+  background: linear-gradient(135deg, var(--hero-grad-start), var(--hero-grad-end));
+  color: #fff !important;
+
+  border: 0;
+  border-radius: 12px;
+  padding: .65rem .9rem;
+  font-weight: 600;
+
+  box-shadow: var(--hero-shadow);
+  transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
+}
+
+/* hover/focus no mesmo “jeito” do hero */
+.candidate-card-flat .ccf-btn:hover{
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(37,99,235,.26);
+}
+.candidate-card-flat .ccf-btn:active{
+  transform: translateY(0);
+  filter: brightness(.98);
+}
+.candidate-card-flat .ccf-btn:focus{
+  outline: none;
+}
+.candidate-card-flat .ccf-btn:focus-visible{
+  outline: 3px solid rgba(37,99,235,.28);
+  outline-offset: 2px;
+}
+
+/* ==========================
+   SEU CSS ORIGINAL (mantido)
+   ========================== */
+
+/* labels escuros no padrão "Cidade:" */
+.label-dark {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+/* texto mais escuro (sobre + infos) */
+.bio-dark {
+  color: #334155;
+}
+
+/* linha mais perto do header */
+.candidate-divider{
+  margin: 6px 0 10px 0;
+}
+
+/* padroniza tamanho de ícones + texto nas linhas (Cidade/Sobre/Habilidades/Idiomas) */
+.info-row{
+  font-size: .88rem;     /* mesmo tamanho das infos */
+  line-height: 1.25;
+  color: #334155;
+}
+.info-row i{
+  font-size: .88rem;     /* ícone no mesmo tamanho */
+  line-height: 1;
+  opacity: .85;
+}
+
+/* topo sem “buraco” */
+.candidate-header-text{
+  min-width: 0; /* necessário pro ellipsis funcionar sem vazar */
+}
+
+/* nome em 1 linha sem estourar */
+.candidate-name-one-line{
+  font-size: .92rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  max-width: 100%;
+}
+
+/* profissão mais colada */
+.profession-line{
+  margin-top: 2px;
+  line-height: 1.2;
+}
+</style>
+
+{% endblock %}

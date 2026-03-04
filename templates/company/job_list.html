@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Minhas vagas{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Minhas vagas</h2>
+    <a href="{{ url_for('company.create_job') }}" class="btn btn-primary">+ Nova vaga</a>
+</div>
+<div class="list-group">
+    {% for job in jobs %}
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+                <div class="fw-bold">{{ job.title }}</div>
+                <div class="text-muted small">{{ job.city }}</div>
+            </div>
+            <div>
+                <a href="{{ url_for('company.job_applications', job_id=job.id) }}" class="btn btn-sm btn-outline-secondary">Candidatos</a>
+                <a href="{{ url_for('company.edit_job', job_id=job.id) }}" class="btn btn-sm btn-outline-primary">Editar</a>
+            </div>
+        </div>
+    {% else %}
+        <p>Você ainda não criou nenhuma vaga.</p>
+    {% endfor %}
+</div>
+{% endblock %}

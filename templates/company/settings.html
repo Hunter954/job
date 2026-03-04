@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Configurações da Empresa - EmpregaJá{% endblock %}
+
+{% block content %}
+<div class="container-xl my-4">
+
+  {% include "company/_profile_header.html" %}
+
+  <ul class="nav nav-tabs dashboard-tabs mb-3">
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('company.dashboard') }}">Visão Geral</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('company.jobs') }}">Vagas</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('company.candidates') }}">Candidatos</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link active" href="{{ url_for('company.settings') }}">Configurações</a>
+    </li>
+  </ul>
+
+  <div class="card">
+    <div class="card-body">
+      <h3 class="h6 mb-2">Configurações da empresa</h3>
+      <p class="small text-slate-500 mb-3">
+        Aqui você poderá ajustar preferências da sua conta de empresa.
+      </p>
+
+      <p class="small text-slate-400 mb-0">
+        (Por enquanto é só um placeholder. Depois a gente pode colocar:
+        alteração de senha, notificações, dados de faturamento, etc.)
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

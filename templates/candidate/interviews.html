@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Minhas Entrevistas - EmpregaJá{% endblock %}
+
+{% block content %}
+<div class="container-xl my-4">
+
+  {# header do perfil #}
+  {% include "candidate/_profile_header.html" %}
+
+  {# cards de métricas #}
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Candidaturas</div>
+          <div class="h4 mb-0">{{ applications_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Entrevistas</div>
+          <div class="h4 mb-0">{{ interviews_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Visualizações</div>
+          <div class="h4 mb-0">{{ views_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Interesses</div>
+          <div class="h4 mb-0">{{ interests_count }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# abas do painel #}
+  <ul class="nav nav-tabs dashboard-tabs mb-3">
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('candidate.dashboard') }}">Visão Geral</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('candidate.profile') }}">Perfil Profissional</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('candidate.personal_data') }}">Meus Dados</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('candidate.applications') }}">Candidaturas</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link active" href="{{ url_for('candidate.interviews') }}">Entrevistas</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('candidate.settings') }}">Configurações</a>
+    </li>
+  </ul>
+
+  {# bloco principal de entrevistas #}
+  <div class="card">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div>
+          <h3 class="h6 mb-0">Entrevistas Agendadas</h3>
+          <p class="small text-slate-500 mb-0">
+            Gerencie suas entrevistas e confirme sua presença
+          </p>
+        </div>
+      </div>
+
+      {% if interviews %}
+        <div class="list-group list-group-flush mt-3">
+          {% for app in interviews %}
+            <div class="list-group-item px-0 py-3 d-flex justify-content-between align-items-center interview-row">
+              <div class="d-flex align-items-start">
+                <div class="me-3">
+                  <div class="rounded-circle d-flex align-items-center justify-content-center"
+                       style="width:40px;height:40px;background:#e5f3ff;">
+                    <i class="bi bi-calendar-event" style="font-size:1.1rem;color:#0d6efd;"></i>
+                  </div>
+                </div>
+                <div>
+                  <div class="fw-semibold small mb-1">
+                    {{ app.job.title if app.job else "Vaga não encontrada" }}
+                  </div>
+                  <div class="small text-slate-500">
+                    {% if app.job and app.job.company_profile and app.job.company_profile.user %}
+                      {{ app.job.company_profile.user.company_name }}
+                    {% else %}
+                      Empresa
+                    {% endif %}
+                  </div>
+                  <div class="small text-slate-500 mt-1">
+                    <i class="bi bi-geo-alt me-1"></i>
+                    {% if app.interview_location %}
+                      {{ app.interview_location }}
+                    {% elif app.job %}
+                      {{ app.job.city or "Local não informado" }}
+                    {% else %}
+                      Local não informado
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+
+              <div class="text-end">
+                {% if app.interview_datetime %}
+                  <div class="small fw-semibold">
+                    {{ app.interview_datetime.strftime("%d/%m/%Y") }}
+                  </div>
+                  <div class="small text-slate-500">
+                    {{ app.interview_datetime.strftime("%H:%M") }}
+                  </div>
+                {% endif %}
+
+                <div class="mt-2">
+                  {% if not app.candidate_confirmed and app.status == 'entrevista_marcada' %}
+                    <form method="post" action="{{ url_for('candidate.confirm_interview', application_id=app.id) }}">
+                      {{ csrf_token() if csrf_token is defined }}
+                      <button type="submit" class="btn btn-hero-primary btn-sm">
+                        Confirmar Presença
+                      </button>
+                    </form>
+                  {% else %}
+                    <span class="badge rounded-pill bg-success-subtle text-success small">
+                      <i class="bi bi-check-circle me-1"></i>Confirmada
+                    </span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="small text-slate-500 mb-0 mt-2">
+          Nenhuma entrevista agendada ainda. Assim que uma empresa marcar uma entrevista
+          para alguma das suas candidaturas, ela aparecerá aqui.
+        </p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

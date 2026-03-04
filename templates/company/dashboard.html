@@ -1,0 +1,412 @@
+{% extends "base.html" %}
+{% block title %}Painel da Empresa - EmpregaJá{% endblock %}
+
+{% block content %}
+<div class="container-xl my-4">
+
+  {% include "company/_profile_header.html" %}
+
+
+<style>
+/* ===== Modal CV (Perfil do candidato) ===== */
+.cv-layout{display:grid;grid-template-columns:300px 1fr;gap:28px;align-items:start;}
+@media (max-width: 992px){.cv-layout{grid-template-columns:1fr;}}
+.cv-sidebar{padding:10px 6px;}
+.cv-avatar{width:88px;height:88px;border-radius:50%;overflow:hidden;border:4px solid rgba(11,132,255,.18);box-shadow:0 10px 24px rgba(0,0,0,.08);background:#fff;}
+.cv-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
+.cv-age-badge{display:inline-flex;align-items:center;gap:.35rem;padding:.28rem .6rem;border-radius:999px;font-size:.82rem;font-weight:800;color:#fff;background:linear-gradient(135deg,#0b84ff,#00b3ff);box-shadow:0 10px 18px rgba(11,132,255,.22);margin:10px 0 14px;}
+.cv-name{font-size:40px;line-height:1.05;font-weight:900;letter-spacing:-.02em;color:#0f1b2d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px;}
+.cv-role{margin-top:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#0b84ff;font-size:.85rem;}
+.cv-sidebar-title{margin-top:18px;font-weight:900;color:#0f1b2d;}
+.cv-contact{list-style:none;padding:0;margin:.5rem 0 0;display:flex;flex-direction:column;gap:.6rem;}
+.cv-contact li{display:flex;align-items:flex-start;gap:.6rem;color:#5b6b86;font-size:.92rem;line-height:1.2rem;}
+.cv-contact li i{width:18px;min-width:18px;margin-top:.05rem;color:#0b84ff;}
+.cv-badges{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.55rem;}
+.cv-badge{display:inline-flex;align-items:center;padding:.35rem .65rem;border-radius:999px;font-size:.85rem;font-weight:700;color:#0f1b2d;background:#eef5ff;border:1px solid rgba(11,132,255,.18);}
+.cv-divider{border-left:1px solid rgba(15,27,45,.12);}
+.cv-main{padding:6px 0;}
+.cv-section{margin-bottom:18px;}
+.cv-section-title{display:flex;align-items:center;gap:.65rem;font-weight:900;color:#0f1b2d;}
+.cv-section-title:after{content:"";height:2px;flex:1;background:linear-gradient(90deg,#0b84ff,rgba(11,132,255,.15));border-radius:999px;margin-left:.6rem;}
+.cv-paragraph{margin-top:.6rem;color:#5b6b86;font-size:.95rem;line-height:1.5rem;}
+.cv-job{padding:12px 0;border-bottom:1px solid rgba(15,27,45,.08);}
+.cv-job:last-child{border-bottom:none;}
+.cv-job-top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;}
+.cv-job-title{font-weight:900;color:#0f1b2d;}
+.cv-job-meta{color:#6c7a92;font-size:.86rem;white-space:nowrap;}
+.cv-job-sub{margin-top:4px;display:flex;flex-wrap:wrap;gap:12px;color:#6c7a92;font-size:.86rem;}
+.cv-job-sub i{color:#0b84ff;}
+.cv-job-desc{margin-top:6px;color:#5b6b86;font-size:.92rem;line-height:1.45rem;}
+</style>
+
+
+  <!-- Cards métricas -->
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-md-4">
+      <div class="card stat-card h-100">
+        <div class="card-body">
+          <div class="small text-slate-500 mb-1">Vagas publicadas</div>
+          <div class="h4 mb-0">{{ jobs_count }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-4">
+      <div class="card stat-card h-100">
+        <div class="card-body">
+          <div class="small text-slate-500 mb-1">Candidaturas recebidas</div>
+          <div class="h4 mb-0">{{ applications_count }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+      <div class="card stat-card h-100">
+        <div class="card-body">
+          <div class="small text-slate-500 mb-1">Entrevistas</div>
+          <div class="h4 mb-0">{{ interviews_count }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs dashboard-tabs mb-3">
+    <li class="nav-item">
+      <a class="nav-link active" href="{{ url_for('company.dashboard') }}">Visão Geral</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('company.jobs') }}">Vagas</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('company.candidates') }}">Candidatos</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('company.settings') }}">Configurações</a>
+    </li>
+  </ul>
+
+  <div class="row g-3">
+
+    <div class="col-lg-8 d-flex flex-column gap-3">
+
+      <!-- Candidatos Recomendados -->
+      <div class="card">
+        <div class="card-body">
+
+          <h3 class="h6 mb-3">Candidatos Recomendados</h3>
+
+          {% if recommended_candidates %}
+
+          <div class="row g-3">
+            {% for cand in recommended_candidates %}
+
+              {% set pode_ver_nome =
+                (current_user.is_authenticated and current_user.role == 'company' and current_user.is_premium)
+              %}
+
+              <div class="col-md-6">
+                <div class="card candidate-row-card h-100">
+                  <div class="card-body">
+
+                    <!-- Parte superior -->
+                    <div class="d-flex align-items-center gap-3 mb-3">
+
+                      <!-- Avatar -->
+                      <div class="candidate-row-avatar">
+                        {% if cand.avatar_filename %}
+                          <img src="{{ url_for('static', filename='uploads/' ~ cand.avatar_filename) }}"
+                               class="candidate-row-avatar-img"
+                               alt="Foto">
+                        {% else %}
+                          <div class="candidate-row-avatar-fallback">
+                            {{ cand.initials() }}
+                          </div>
+                        {% endif %}
+                      </div>
+
+                      <!-- Infos -->
+                      <div class="flex-grow-1 min-w-0">
+                        <div class="fw-semibold text-truncate">
+                          {% if is_premium %}
+                            {{ cand.user.full_name if cand.user and cand.user.full_name else "Candidato" }}
+                          {% else %}
+                            {{ masked_names.get(cand.id) or "Candidato" }}
+                          {% endif %}
+                        </div>
+
+                        <div class="small text-slate-500 text-truncate">
+                          {{ cand.profession or "Profissão não informada" }}
+                        </div>
+
+                        <div class="small text-slate-500 mt-1">
+                          <i class="bi bi-geo-alt me-1"></i>
+                          {{ cand.city or "Cidade não informada" }}
+                        </div>
+                      </div>
+
+                    </div>
+
+                    
+<!-- Ações -->
+<div class="row g-2">
+  <div class="col-6">
+    <button type="button"
+            class="btn btn-outline-load btn-sm w-100 btn-pill"
+            data-bs-toggle="modal"
+            data-bs-target="#cvModal-{{ cand.id }}">
+      <i class="bi bi-person me-1"></i> Ver Perfil
+    </button>
+  </div>
+
+  <div class="col-6">
+    <form method="post"
+          action="{{ url_for('company.contact_candidate', candidate_id=cand.id) }}"
+          class="m-0">
+      {% if csrf_token is defined %}
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% endif %}
+      <button type="submit"
+              class="btn btn-primary btn-sm w-100 btn-pill">
+        <i class="bi bi-chat-dots me-1"></i> Contatar
+      </button>
+    </form>
+  </div>
+</div>
+
+
+
+                <!-- Modal: Perfil do candidato (layout CV) -->
+                <div class="modal fade" id="cvModal-{{ cand.id }}" tabindex="-1" aria-hidden="true">
+                  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-person-badge me-2"></i>Perfil do candidato</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                      </div>
+
+                      <div class="modal-body">
+                        <div class="cv-layout">
+
+                          <!-- Sidebar -->
+                          <aside class="cv-sidebar">
+                            <div class="d-flex flex-column align-items-start">
+                              <div class="cv-avatar">
+                                {% if cand.avatar_filename %}
+                                  <img src="{{ url_for('static', filename='uploads/' ~ cand.avatar_filename) }}" alt="Foto">
+                                {% else %}
+                                  <img src="{{ url_for('static', filename='img/default-avatar.png') }}" alt="Foto">
+                                {% endif %}
+                              </div>
+
+                              {% set idade = candidate_ages.get(cand.id) %}
+                              {% if idade %}
+                                <div class="cv-age-badge">{{ idade }} anos</div>
+                              {% endif %}
+
+                              <div class="cv-name">
+                                {% if is_premium %}
+                                  {{ cand.user.full_name if cand.user and cand.user.full_name else "Candidato" }}
+                                {% else %}
+                                  {{ masked_names.get(cand.id) or "Candidato" }}
+                                {% endif %}
+                              </div>
+
+                              <div class="cv-role">{{ (cand.profession or "Profissão não informada") }}</div>
+                            </div>
+
+                            <div class="cv-sidebar-title">Contato</div>
+                            <ul class="cv-contact">
+                              {% if cand.email %}<li><i class="bi bi-envelope"></i><span>{{ cand.email }}</span></li>{% endif %}
+                              {% if cand.phone %}<li><i class="bi bi-telephone"></i><span>{{ cand.phone }}</span></li>{% endif %}
+                              {% if cand.city %}<li><i class="bi bi-geo-alt"></i><span>{{ cand.city }}{% if cand.state %}, {{ cand.state }}{% endif %}</span></li>{% endif %}
+                              {% if cand.availability %}<li><i class="bi bi-briefcase"></i><span>{{ cand.availability|upper }}</span></li>{% endif %}
+                              {% set edu = education_display.get(cand.id) %}
+                              {% if edu %}<li><i class="bi bi-mortarboard"></i><span>{{ edu }}</span></li>{% endif %}
+                            </ul>
+
+                            <div class="cv-sidebar-title">Idiomas</div>
+                            <div class="cv-badges">
+                              {% set langs = (cand.languages or "") %}
+                              {% set lang_list = langs.replace('\n', ',').replace(';', ',').split(',') %}
+                              {% set ns_lang = namespace(has=false) %}
+                              {% for lang in lang_list %}
+                                {% if lang and lang.strip() %}
+                                  {% set ns_lang.has = true %}
+                                  <span class="cv-badge">{{ lang.strip() }}</span>
+                                {% endif %}
+                              {% endfor %}
+                              {% if not ns_lang.has %}
+                                <span class="cv-badge">Não informado</span>
+                              {% endif %}
+                            
+                            </div>
+
+                            <div class="cv-sidebar-title">Habilidades Técnicas</div>
+                            <div class="cv-badges">
+                              {% set sk = (cand.skills or "") %}
+                              {% set sk_list = sk.replace('\n', ',').replace(';', ',').split(',') %}
+                              {% set ns_sk = namespace(has=false) %}
+                              {% for s in sk_list %}
+                                {% if s and s.strip() %}
+                                  {% set ns_sk.has = true %}
+                                  <span class="cv-badge">{{ s.strip() }}</span>
+                                {% endif %}
+                              {% endfor %}
+                              {% if not ns_sk.has %}
+                                <span class="cv-badge">Não informado</span>
+                              {% endif %}
+                            
+                            </div>
+                          </aside>
+
+                          <!-- Divider -->
+                          <div class="cv-divider d-none d-lg-block"></div>
+
+                          <!-- Main -->
+                          <section class="cv-main">
+                            <div class="cv-section">
+                              <div class="cv-section-title">Descrição Profissional</div>
+                              <div class="cv-paragraph">{{ cand.about or "Não informada." }}</div>
+                            </div>
+
+                            <div class="cv-section">
+                              <div class="cv-section-title">Experiências de Trabalho</div>
+
+                              {% set exps = candidate_experiences.get(cand.id, []) %}
+                              {% if exps and exps|length > 0 %}
+                                {% for exp in exps %}
+                                  <div class="cv-job">
+                                    <div class="cv-job-top">
+                                      <div class="cv-job-title">{{ exp.role or exp.title or "Cargo" }}</div>
+                                      <div class="cv-job-meta">
+                                        {% if exp.start_date or exp.end_date %}
+                                          {{ exp.start_date or "" }}{% if exp.start_date and exp.end_date %} - {% endif %}{{ exp.end_date or "" }}
+                                        {% endif %}
+                                      </div>
+                                    </div>
+
+                                    {% if exp.company or exp.city %}
+                                      <div class="cv-job-sub">
+                                        {% if exp.company %}<span><i class="bi bi-building"></i> {{ exp.company }}</span>{% endif %}
+                                        {% if exp.city %}<span><i class="bi bi-geo-alt"></i> {{ exp.city }}</span>{% endif %}
+                                      </div>
+                                    {% endif %}
+
+                                    {% if exp.description %}
+                                      <div class="cv-job-desc">{{ exp.description }}</div>
+                                    {% endif %}
+                                  </div>
+                                {% endfor %}
+                              {% else %}
+                                <div class="cv-paragraph">Não informada.</div>
+                              {% endif %}
+                            </div>
+                          </section>
+
+                        </div>
+                      </div>
+
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-pill" data-bs-dismiss="modal">Fechar</button>
+
+                        <form method="post" action="{{ url_for('company.contact_candidate', candidate_id=cand.id) }}" class="m-0">
+                          {% if csrf_token is defined %}
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                          {% endif %}
+                          <button type="submit" class="btn btn-primary btn-pill">
+                            <i class="bi bi-chat-dots me-1"></i> Contatar
+                          </button>
+                        </form>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+
+                  </div>
+                </div>
+              </div>
+
+            {% endfor %}
+          </div>
+
+          {% if not current_user.is_premium %}
+            <div class="mt-3">
+              <p class="small text-slate-500 mb-0">
+                Nome completo disponível apenas no Premium.
+              </p>
+            </div>
+          {% endif %}
+
+          {% else %}
+            <p class="small text-slate-500 mb-0">
+              Ainda não há recomendações de candidatos.
+            </p>
+          {% endif %}
+
+        </div>
+      </div>
+
+      <!-- Estilo leve do card -->
+      <style>
+        .candidate-row-card {
+          border: 1px solid rgba(148,163,184,.35);
+          border-radius: 14px;
+          transition: .2s ease;
+        }
+        .candidate-row-card:hover {
+          box-shadow: 0 6px 18px rgba(0,0,0,.08);
+        }
+        .candidate-row-avatar {
+          width: 50px;
+          height: 50px;
+          border-radius: 999px;
+          overflow: hidden;
+          background: #f1f5f9;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 600;
+        }
+        .candidate-row-avatar-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .candidate-row-avatar-fallback {
+          font-size: 13px;
+          color: #0f172a;
+        }
+        .btn-pill {
+          border-radius: 12px;
+          padding: .55rem .75rem;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: .25rem;
+        }
+      </style>
+
+    </div>
+
+    <!-- Coluna direita -->
+    <div class="col-lg-4">
+      <div class="card h-100">
+        <div class="card-body d-flex flex-column">
+          <h3 class="h6 mb-1">Destaque suas vagas</h3>
+          <p class="small text-slate-500 mb-3">
+            Aumente o alcance das suas oportunidades ativando o plano Premium.
+          </p>
+          <div class="mt-auto">
+            <a href="{{ url_for('main.index') }}#planos" class="btn btn-primary w-100">
+              Assinar Premium
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

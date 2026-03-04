@@ -1,0 +1,593 @@
+{% extends "base.html" %}
+{% block title %}Perfil Profissional - EmpregaJá{% endblock %}
+
+{% block content %}
+<div class="container-xl my-4">
+
+  {% include "candidate/_profile_header.html" %}
+
+  <style>
+    /* Badges (habilidades/idiomas) */
+    .skill-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:.4rem;
+      padding:.35rem .55rem;
+      border-radius:999px;
+      border:1px solid rgba(100,116,139,.25);
+      background: rgba(241,245,249,.65);
+      font-size:.875rem;
+      line-height:1;
+      color: rgba(15,23,42,.9);
+    }
+    .btn-close-tag{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:20px;
+      height:20px;
+      border:0;
+      border-radius:999px;
+      background: rgba(100,116,139,.14);
+      color: rgba(15,23,42,.75);
+      cursor:pointer;
+      padding:0;
+      transition: transform .08s ease, background .15s ease;
+    }
+    .btn-close-tag:hover{ background: rgba(100,116,139,.24); transform: scale(1.06); }
+    .btn-close-tag:active{ transform: scale(.98); }
+    .btn-close-tag:focus-visible{ outline:2px solid rgba(59,130,246,.6); outline-offset:2px; }
+
+    /* Avatar */
+    .avatar-preview{
+      width:64px;height:64px;object-fit:cover;border-radius:999px;
+      border:1px solid rgba(100,116,139,.25);
+    }
+    .avatar-placeholder{
+      width:64px;height:64px;border-radius:999px;
+      display:flex;align-items:center;justify-content:center;
+      background: rgba(241,245,249,.9);
+      border:1px dashed rgba(100,116,139,.35);
+      font-size:26px;
+    }
+  </style>
+
+  <!-- Cards de métricas -->
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Candidaturas</div>
+          <div class="h4 mb-0">{{ applications_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Entrevistas</div>
+          <div class="h4 mb-0">{{ interviews_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Visualizações</div>
+          <div class="h4 mb-0">{{ views_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Interesses</div>
+          <div class="h4 mb-0">{{ interests_count }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs dashboard-tabs mb-3">
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('candidate.dashboard') }}">
+        Visão Geral
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link active" href="{{ url_for('candidate.profile') }}">
+        Perfil Profissional
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('candidate.personal_data') }}">
+        Meus Dados
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('candidate.applications') }}">
+        Candidaturas
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('candidate.interviews') }}">
+        Entrevistas
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('candidate.settings') }}">
+        Configurações
+      </a>
+    </li>
+  </ul>
+
+  <div class="row g-3">
+    <!-- Coluna esquerda: formulário de perfil profissional + experiências -->
+    <div class="col-lg-8 d-flex flex-column gap-3">
+
+      <!-- Foto de perfil (SESSÃO SEPARADA + SALVAR FOTO SEPARADO) -->
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <h3 class="h6 mb-0">Foto de perfil</h3>
+              <p class="small text-slate-500 mb-0">
+                Essa foto aparece na home e no seu card público.
+              </p>
+            </div>
+          </div>
+
+          <form method="post" enctype="multipart/form-data" novalidate>
+            {{ form.csrf_token }}
+            <input type="hidden" name="action" value="save_avatar">
+
+            <div class="d-flex align-items-center gap-3 mb-3">
+              {% if profile.avatar_filename %}
+                <img
+                  src="{{ url_for('static', filename='uploads/' ~ profile.avatar_filename) }}"
+                  alt="Foto de perfil"
+                  class="avatar-preview">
+              {% else %}
+                <div class="avatar-placeholder">👤</div>
+              {% endif %}
+
+              <div class="flex-grow-1">
+                <input type="file" name="avatar" class="form-control"
+                      accept="image/png,image/jpeg,image/jpg,image/webp">
+                <p class="small text-slate-500 mt-1 mb-0">PNG, JPG, JPEG ou WEBP (até 5MB).</p>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-end">
+              <button type="submit" class="btn btn-outline-load">
+                Salvar foto
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Form perfil profissional -->
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <h3 class="h6 mb-0">Informações profissionais</h3>
+              <p class="small text-slate-500 mb-0">
+                Esses dados aparecem quando a empresa vê seu perfil completo.
+              </p>
+            </div>
+          </div>
+
+          <form method="post" novalidate>
+            {{ form.csrf_token }}
+            <input type="hidden" name="action" value="save_profile">
+
+            <!-- Nome, cidade, estado apenas exibidos (travados) -->
+            <div class="mb-3">
+              <label class="form-label small text-slate-500 mb-1">Nome completo (vem de Meus Dados)</label>
+              <input
+                type="text"
+                class="form-control"
+                value="{{ current_user.full_name or '' }}"
+                disabled>
+            </div>
+
+            <div class="row g-3 mb-2">
+              <div class="col-md-6">
+                <label class="form-label small text-slate-500 mb-1">Cidade (vem de Meus Dados)</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  value="{{ profile.city or '' }}"
+                  disabled>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small text-slate-500 mb-1">Estado (vem de Meus Dados)</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  value="{{ profile.state or '' }}"
+                  disabled>
+              </div>
+            </div>
+
+            <!-- Dados profissionais editáveis -->
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label small text-slate-500 mb-1">Profissão</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  name="profession"
+                  value="{{ profile.profession or '' }}"
+                  placeholder="Ex: Desenvolvedor Full Stack">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small text-slate-500 mb-1">Escolaridade</label>
+                <select class="form-control" name="education_level">
+                  <option value="">Selecione</option>
+                  <option value="fundamental" {% if profile.education_level == 'fundamental' %}selected{% endif %}>Ensino fundamental</option>
+                  <option value="medio" {% if profile.education_level == 'medio' %}selected{% endif %}>Ensino médio</option>
+                  <option value="tecnico" {% if profile.education_level == 'tecnico' %}selected{% endif %}>Curso técnico</option>
+                  <option value="superior" {% if profile.education_level == 'superior' %}selected{% endif %}>Ensino superior</option>
+                  <option value="pos" {% if profile.education_level == 'pos' %}selected{% endif %}>Pós-graduação</option>
+                  <option value="mestrado" {% if profile.education_level == 'mestrado' %}selected{% endif %}>Mestrado</option>
+                  <option value="doutorado" {% if profile.education_level == 'doutorado' %}selected{% endif %}>Doutorado</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mt-3">
+              <label class="form-label small text-slate-500 mb-1">Disponibilidade</label>
+              <select class="form-control" name="availability">
+                <option value="">Selecione</option>
+                <option value="clt" {% if profile.availability == 'clt' %}selected{% endif %}>CLT</option>
+                <option value="freelancer" {% if profile.availability == 'freelancer' %}selected{% endif %}>Freelancer</option>
+                <option value="pj" {% if profile.availability == 'pj' %}selected{% endif %}>PJ</option>
+              </select>
+            </div>
+
+            <!-- Habilidades -->
+            <div class="mt-3">
+              <label class="form-label small text-slate-500 mb-1">Habilidades</label>
+              <div class="skills-input-wrapper">
+                <div id="skills-tags" class="d-flex flex-wrap gap-2 mb-2"></div>
+                <input
+                  type="text"
+                  id="skills-input"
+                  class="form-control form-control-sm"
+                  placeholder="Digite uma habilidade e pressione Enter">
+                <input
+                  type="hidden"
+                  name="skills"
+                  id="skills-hidden"
+                  value="{{ profile.skills or '' }}">
+              </div>
+              <p class="small text-slate-500 mt-1 mb-0">
+                Ex: Photoshop, React, Comunicação...
+              </p>
+            </div>
+
+            <!-- Idiomas -->
+            <div class="mt-3">
+              <label class="form-label small text-slate-500 mb-1">Idiomas</label>
+              <div class="skills-input-wrapper">
+                <div id="languages-tags" class="d-flex flex-wrap gap-2 mb-2"></div>
+                <input
+                  type="text"
+                  id="languages-input"
+                  class="form-control form-control-sm"
+                  placeholder="Digite um idioma e pressione Enter">
+                <input
+                  type="hidden"
+                  name="languages"
+                  id="languages-hidden"
+                  value="{{ profile.languages or '' }}">
+              </div>
+              <p class="small text-slate-500 mt-1 mb-0">
+                Ex: Português nativo, Inglês intermediário, Espanhol básico...
+              </p>
+            </div>
+
+            <div class="mt-3">
+              <label class="form-label small text-slate-500 mb-1">Sobre você</label>
+              <textarea
+                class="form-control"
+                name="bio"
+                rows="3"
+                placeholder="Fale um pouco sobre sua trajetória profissional...">{{ profile.bio or "" }}</textarea>
+            </div>
+
+            <div class="mt-4 d-flex justify-content-end">
+              <button type="submit" class="btn btn-primary">
+                Salvar perfil
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Experiências profissionais -->
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <h3 class="h6 mb-0">Experiências profissionais</h3>
+              {% if last_experience %}
+                <p class="small text-slate-500 mb-0">
+                  Último emprego
+                  {% if last_experience.is_current %}(atual){% endif %}:
+                  <strong>{{ last_experience.role }}</strong>
+                  em <strong>{{ last_experience.company_name }}</strong>
+                </p>
+              {% else %}
+                <p class="small text-slate-500 mb-0">
+                  Adicione seu último emprego ou emprego atual para fortalecer seu perfil.
+                </p>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if experiences %}
+            <div class="mb-3 d-flex flex-column gap-2">
+              {% for exp in experiences %}
+                <div class="application-row">
+                  <div class="application-main">
+                    <div class="application-icon">
+                      <span>🏢</span>
+                    </div>
+                    <div>
+                      <div class="application-title">
+                        {{ exp.role or "Cargo não informado" }}
+                      </div>
+                      <div class="application-subtitle">
+                        {{ exp.company_name or "Empresa não informada" }}
+                        {% if exp.is_current %}
+                          <span class="badge bg-success ms-1">Atual</span>
+                        {% endif %}
+                      </div>
+                      <div class="small text-slate-500">
+                        {{ exp.period_label() }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="application-meta">
+                    <form method="post" class="m-0 p-0">
+                      {{ form.csrf_token }}
+                      <input type="hidden" name="action" value="delete_experience">
+                      <input type="hidden" name="experience_id" value="{{ exp.id }}">
+                      <button type="submit" class="btn btn-sm btn-outline-load">
+                        Remover
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="small text-slate-500 mb-3">
+              Você ainda não adicionou nenhuma experiência profissional.
+            </p>
+          {% endif %}
+
+          <hr>
+
+          <h4 class="small text-slate-500 mb-2">Adicionar nova experiência</h4>
+
+          <form method="post">
+            {{ form.csrf_token }}
+            <input type="hidden" name="action" value="add_experience">
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label small text-slate-500 mb-1">Cargo</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  name="exp_role"
+                  placeholder="Ex: Analista de Suporte">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small text-slate-500 mb-1">Empresa</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  name="exp_company"
+                  placeholder="Nome da empresa">
+              </div>
+            </div>
+
+            <div class="row g-3 mt-2">
+              <!-- Início -->
+              <div class="col-md-6">
+                <label class="form-label small text-slate-500 mb-1">Início</label>
+                <div class="row g-2">
+                  <div class="col-6">
+                    <select class="form-control" name="exp_start_month">
+                      <option value="">Mês</option>
+                      {% for m in range(1, 13) %}
+                        <option value="{{ m }}">{{ "%02d"|format(m) }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <select class="form-control" name="exp_start_year">
+                      <option value="">Ano</option>
+                      {% for y in range(current_year, current_year-50, -1) %}
+                        <option value="{{ y }}">{{ y }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Fim -->
+              <div class="col-md-6">
+                <label class="form-label small text-slate-500 mb-1">Fim</label>
+                <div class="row g-2">
+                  <div class="col-6">
+                    <select class="form-control" name="exp_end_month">
+                      <option value="">Mês</option>
+                      {% for m in range(1, 13) %}
+                        <option value="{{ m }}">{{ "%02d"|format(m) }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <select class="form-control" name="exp_end_year">
+                      <option value="">Ano</option>
+                      {% for y in range(current_year, current_year-50, -1) %}
+                        <option value="{{ y }}">{{ y }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+                <p class="small text-slate-500 mt-1 mb-0">
+                  Deixe em branco ou marque "Emprego atual" se ainda estiver trabalhando.
+                </p>
+              </div>
+            </div>
+
+            <div class="form-check mt-2">
+              <input class="form-check-input" type="checkbox" value="on" id="exp_current" name="exp_current">
+              <label class="form-check-label small text-slate-500" for="exp_current">
+                Emprego atual
+              </label>
+            </div>
+
+            <div class="mt-3 d-flex justify-content-end">
+              <button type="submit" class="btn btn-outline-load">
+                Adicionar experiência
+              </button>
+            </div>
+          </form>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Coluna direita: visibilidade e explicação -->
+    <div class="col-lg-4 d-flex flex-column gap-3">
+      <div class="card">
+        <div class="card-body">
+          <h3 class="h6 mb-1">Visibilidade do perfil</h3>
+          <p class="small text-slate-500 mb-2">
+            Quando o perfil estiver <strong>ativado</strong>, ele poderá aparecer na home e nos
+            resultados de busca de candidatos.
+          </p>
+          <p class="small text-slate-500 mb-3">
+            As informações desse <strong>Perfil Profissional</strong> serão exibidas para as
+            empresas quando elas clicarem em <em>"Ver perfil completo do candidato"</em>.
+            Apenas <strong>empresas Premium</strong> poderão ver todos os detalhes.
+          </p>
+
+          <form method="post">
+            {{ form.csrf_token }}
+            <input type="hidden" name="action" value="toggle_visibility">
+
+            {% if profile.is_public %}
+              <div class="alert alert-success py-2 mb-2 small">
+                Seu perfil está <strong>ATIVADO</strong>.
+              </div>
+              <button type="submit" class="btn btn-outline-load w-100">
+                Desativar perfil
+              </button>
+            {% else %}
+              <div class="alert alert-secondary py-2 mb-2 small">
+                Seu perfil está <strong>DESATIVADO</strong> e não aparecerá na home.
+              </div>
+              <button type="submit" class="btn btn-primary w-100">
+                Ativar perfil
+              </button>
+            {% endif %}
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- JS para badges de habilidades e idiomas -->
+<script>
+  function setupTagInput(wrapperId, inputId, hiddenId, initialValue) {
+    const wrapper = document.getElementById(wrapperId);
+    const input = document.getElementById(inputId);
+    const hidden = document.getElementById(hiddenId);
+
+    let tags = [];
+
+    function renderTags() {
+      wrapper.innerHTML = "";
+      tags.forEach((tag, index) => {
+        const span = document.createElement("span");
+        span.className = "skill-badge";
+        span.appendChild(document.createTextNode(tag));
+
+        const close = document.createElement("button");
+        close.type = "button";
+        close.className = "btn-close-tag";
+        close.setAttribute("aria-label", "Remover");
+        close.innerHTML = `
+          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+            <path d="M3 3l6 6M9 3L3 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        `;
+        close.onclick = () => {
+          tags.splice(index, 1);
+          updateHidden();
+          renderTags();
+        };
+
+        span.appendChild(close);
+        wrapper.appendChild(span);
+      });
+    }
+
+    function updateHidden() {
+      hidden.value = tags.join(", ");
+    }
+
+    if (initialValue) {
+      initialValue.split(",").forEach((raw) => {
+        const t = raw.trim();
+        if (t) tags.push(t);
+      });
+      renderTags();
+      updateHidden();
+    }
+
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const value = input.value.trim();
+        if (value && !tags.includes(value)) {
+          tags.push(value);
+          input.value = "";
+          renderTags();
+          updateHidden();
+        }
+      }
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    setupTagInput(
+      "skills-tags",
+      "skills-input",
+      "skills-hidden",
+      "{{ profile.skills or '' }}"
+    );
+    setupTagInput(
+      "languages-tags",
+      "languages-input",
+      "languages-hidden",
+      "{{ profile.languages or '' }}"
+    );
+  });
+</script>
+{% endblock %}

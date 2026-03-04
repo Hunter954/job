@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Candidatos para {{ job.title }}{% endblock %}
+{% block content %}
+<h2 class="mb-3">Candidatos para {{ job.title }}</h2>
+<div class="list-group">
+    {% for app in applications %}
+        <div class="list-group-item">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="fw-bold">{{ app.candidate_profile.user.full_name }}</div>
+                    <div class="text-muted small">{{ app.candidate_profile.profession }} - {{ app.candidate_profile.city }}</div>
+                    {% if app.candidate_profile.bio %}
+                        <div class="small mt-1">{{ app.candidate_profile.bio }}</div>
+                    {% endif %}
+                    <div class="small mt-1">Status: {{ app.status }}</div>
+                    {% if app.interview_datetime %}
+                        <div class="small text-success">
+                            Entrevista: {{ app.interview_datetime.strftime("%d/%m/%Y %H:%M") }} - {{ app.interview_location }}
+                            {% if app.candidate_confirmed %}
+                                (candidato confirmou presença)
+                            {% else %}
+                                (aguardando confirmação do candidato)
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+                <div>
+                    <form method="post" action="{{ url_for('company.schedule_interview', job_id=job.id, application_id=app.id) }}" class="small text-end">
+                        <div class="mb-1">
+                            <input type="date" name="date" class="form-control form-control-sm" placeholder="Data">
+                        </div>
+                        <div class="mb-1">
+                            <input type="time" name="time" class="form-control form-control-sm" placeholder="Hora">
+                        </div>
+                        <div class="mb-1">
+                            <input type="text" name="location" class="form-control form-control-sm" placeholder="Local da entrevista">
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary">Marcar entrevista</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <p>Nenhuma candidatura para esta vaga ainda.</p>
+    {% endfor %}
+</div>
+{% endblock %}

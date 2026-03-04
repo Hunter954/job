@@ -1,0 +1,474 @@
+{% extends "base.html" %}
+{% block title %}Vagas da Empresa - EmpregaJá
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const csrf = "{{ csrf_token() if csrf_token is defined else '' }}";
+
+    // restaura scroll após reload (toggle)
+    const restore = sessionStorage.getItem("jobs_scroll_y");
+    if (restore) {
+      window.scrollTo(0, parseInt(restore, 10));
+      sessionStorage.removeItem("jobs_scroll_y");
+    }
+
+    // Toggle status (sem submit de form)
+    document.querySelectorAll(".job-toggle").forEach((el) => {
+      el.addEventListener("change", async () => {
+        const url = el.getAttribute("data-toggle-url");
+        sessionStorage.setItem("jobs_scroll_y", String(window.scrollY));
+
+        try {
+          await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: csrf ? `csrf_token=${encodeURIComponent(csrf)}` : ""
+          });
+          window.location.reload();
+        } catch (e) {
+          el.checked = !el.checked;
+          alert("Não foi possível alterar o status da vaga. Tente novamente.");
+        }
+      });
+    });
+
+    // Excluir (AJAX) - mantém o usuário no lugar e remove o card
+    document.querySelectorAll(".job-delete").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const url = btn.getAttribute("data-delete-url");
+        if (!confirm("Tem certeza que deseja excluir esta vaga? Esta ação não pode ser desfeita.")) return;
+
+        try {
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: csrf ? `csrf_token=${encodeURIComponent(csrf)}` : ""
+          });
+
+          if (!res.ok) throw new Error("delete_failed");
+
+          const card = btn.closest(".col-12, .col-md-6, .col-xl-4") || btn.closest(".job-card");
+          if (card) card.remove();
+        } catch (e) {
+          alert("Não foi possível excluir a vaga. Tente novamente.");
+        }
+      });
+    });
+  });
+</script>
+
+{% endblock %}
+
+{% block content %}
+
+{% macro brl(v) -%}
+  {%- if v is not none -%}
+    R$ {{ "{:,.2f}".format(v).replace(",", "X").replace(".", ",").replace("X", ".") }}
+  {%- endif -%}
+{%- endmacro %}
+
+<div class="container-xl my-4">
+
+  {% include "company/_profile_header.html" %}
+
+  <!-- Cards de métricas (igual painel candidato, mas com métricas da empresa) -->
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Vagas publicadas</div>
+          <div class="h4 mb-0">{{ jobs_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Candidaturas recebidas</div>
+          <div class="h4 mb-0">{{ applications_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Entrevistas</div>
+          <div class="h4 mb-0">{{ interviews_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card h-100">
+        <div class="card-body d-flex flex-column justify-content-center">
+          <div class="small text-slate-500 mb-1">Candidatos interessados</div>
+          <div class="h4 mb-0">{{ interests_count }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs dashboard-tabs mb-3">
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('company.dashboard') }}">
+        Visão Geral
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link active" href="{{ url_for('company.jobs') }}">
+        Vagas
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('company.dashboard') }}#candidatos">
+        Candidatos
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('company.dashboard') }}#entrevistas">
+        Entrevistas
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('company.dashboard') }}#configuracoes">
+        Configurações
+      </a>
+    </li>
+  </ul>
+
+  <div class="row g-3">
+    <!-- COLUNA ESQUERDA: cadastro de vaga -->
+    <div class="col-lg-8 d-flex flex-column gap-3">
+
+      <!-- Card de cadastro da vaga -->
+      <div class="card" id="job-form">
+        <div class="card-body">
+          <h3 class="h6 mb-1">{{ "Editar vaga" if edit_job else "Cadastrar vaga" }}</h3>
+          <p class="small text-slate-500 mb-3">
+            {{ "Atualize as informações abaixo para manter a vaga sempre correta." if edit_job else "Preencha as informações abaixo para" }} publicar uma nova oportunidade.
+          </p>
+
+          <form method="post">
+            {{ csrf_token() if csrf_token is defined }}
+            <input type="hidden" name="job_id" value="{{ edit_job.id if edit_job else '' }}">
+
+            <!-- Nome da empresa (auto) -->
+            <div class="mb-3">
+              <label class="form-label small text-slate-500">Nome da empresa</label>
+              <input type="text" class="form-control auth-input" value="{{ current_user.company_name }}"
+                     disabled>
+            </div>
+
+            <!-- Função -->
+            <div class="mb-3">
+              <label class="form-label small text-slate-500">
+                Função <span class="text-danger">*</span>
+              </label>
+              <input type="text" name="title" class="form-control auth-input"
+                     value="{{ edit_job.title if edit_job else '' }}"
+                     placeholder="Ex: Caixa, Vendedor(a), Atendente..." required>
+            </div>
+
+            <!-- Localização -->
+            <div class="mb-3">
+              <label class="form-label small text-slate-500">
+                Localização <span class="text-danger">*</span>
+              </label>
+              <input type="text" name="city" class="form-control auth-input"
+                     value="{{ edit_job.city if edit_job else '' }}"
+                     placeholder="Cidade" required>
+            </div>
+
+            <!-- Modalidade + Regime + Faixa salarial -->
+<div class="row">
+  <div class="col-md-4 mb-3">
+    <label class="form-label small text-slate-500">Modalidade</label>
+    {% set v = edit_job.employment_type if edit_job else '' %}
+    <select name="employment_type" class="form-select auth-input">
+      <option value="">Selecione...</option>
+      <option value="CLT" {{ 'selected' if v=='CLT' else '' }}>CLT</option>
+      <option value="PJ" {{ 'selected' if v=='PJ' else '' }}>PJ</option>
+      <option value="Estágio" {{ 'selected' if v=='Estágio' else '' }}>Estágio</option>
+      <option value="Aprendiz" {{ 'selected' if v=='Aprendiz' else '' }}>Aprendiz</option>
+      <option value="Freelance" {{ 'selected' if v=='Freelance' else '' }}>Freelance</option>
+    </select>
+  </div>
+
+  <div class="col-md-4 mb-3">
+    <label class="form-label small text-slate-500">Regime de trabalho</label>
+    {% set r = edit_job.work_regime if edit_job else '' %}
+    <select name="work_regime" class="form-select auth-input">
+      <option value="">Selecione...</option>
+      <option value="Presencial" {{ 'selected' if r=='Presencial' else '' }}>Presencial</option>
+      <option value="Home Office" {{ 'selected' if r=='Home Office' else '' }}>Home Office</option>
+      <option value="Híbrido" {{ 'selected' if r=='Híbrido' else '' }}>Híbrido</option>
+      <option value="Remoto" {{ 'selected' if r=='Remoto' else '' }}>Remoto</option>
+    </select>
+  </div>
+
+  <div class="col-md-4 mb-3">
+    <label class="form-label small text-slate-500">Faixa salarial</label>
+    <input type="text" name="salary_range" class="form-control auth-input"
+           value="{% if edit_job and edit_job.salary_min is not none %}{{ brl(edit_job.salary_min) }}{% endif %}"
+           placeholder="Ex: 1620">
+  </div>
+</div>
+
+
+            <!-- Descrição -->
+            <div class="mb-3">
+              <label class="form-label small text-slate-500">Descrição da vaga</label>
+              <textarea name="description" rows="4" class="form-control auth-input"
+                        placeholder="Descreva as atribuições, responsabilidades e requisitos para a posição.">{{ edit_job.description if edit_job else "" }}</textarea>
+            </div>
+
+            <div class="d-flex justify-content-end flex-wrap gap-2">
+              <button type="submit" class="btn btn-primary">
+                {{ "Atualizar" if edit_job else "Cadastrar" }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Lista de vagas existentes -->
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <h3 class="h6 mb-0">Vagas cadastradas</h3>
+              <p class="small text-slate-500 mb-0">
+                Gerencie as vagas já criadas e controle o que aparece na home.
+              </p>
+            </div>
+          </div>
+
+          {% if jobs %}
+  <div class="row g-3 mt-1" id="jobs-list">
+    {% for job in jobs if job.title %}
+      <div class="col-12 col-md-6 col-xl-4">
+        <div class="card h-100 job-card" id="job-card-{{ job.id }}">
+          <div class="card-body d-flex flex-column">
+
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div class="pe-2">
+                <div class="fw-semibold">{{ job.title }}</div>
+                <div class="small text-slate-500">{{ current_user.company_name }}</div>
+                <div class="small text-slate-500">{{ job.city or "Cidade não informada" }}</div>
+              </div>
+
+              <div class="text-end">
+                {% if job.is_active %}
+                  <span class="badge bg-success-subtle text-success">Ativa</span>
+                {% else %}
+                  <span class="badge bg-secondary-subtle text-muted">Desativada</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="mt-2 d-flex flex-wrap gap-2 align-items-center">
+              {% if job.employment_type %}
+                <span class="badge bg-light text-slate-500 border">{{ job.employment_type }}</span>
+              {% endif %}
+              {% if job.work_regime %}
+                <span class="badge bg-light text-slate-500 border">{{ job.work_regime }}</span>
+              {% endif %}
+              {% if job.salary_min or job.salary_max %}
+                <span class="badge bg-light text-slate-500 border">
+                  {% if job.salary_min and job.salary_max and job.salary_min != job.salary_max %}
+                    {{ brl(job.salary_min) }} - {{ brl(job.salary_max) }}
+                  {% else %}
+                    {{ brl((job.salary_min or job.salary_max)) }}
+                  {% endif %}
+                </span>
+              {% endif %}
+            </div>
+
+            {% if job.description %}
+              <p class="small text-slate-400 mt-2 mb-0">
+                {{ job.description | truncate(120, True, '.') }}
+              </p>
+            {% endif %}
+
+            <div class="mt-auto pt-3 d-flex justify-content-between align-items-center">
+
+              <!-- Toggle ON/OFF -->
+              <form method="post" action="{{ url_for('company.toggle_job', job_id=job.id) }}">
+                {{ csrf_token() if csrf_token is defined }}
+                <div class="form-check form-switch m-0">
+                  <input class="form-check-input" type="checkbox"
+                         data-toggle-url="{{ url_for('company.toggle_job', job_id=job.id) }}" class="form-check-input job-toggle"
+                         {% if job.is_active %}checked{% endif %}>
+                </div>
+              </form>
+
+              <div class="d-flex gap-2">
+                <a class="btn btn-outline-primary btn-sm"
+                   href="{{ url_for('company.jobs', edit=job.id) }}#job-form">
+                  Editar
+                </a>
+
+                <button type="button"
+                        class="btn btn-outline-danger btn-sm job-delete"
+                        data-delete-url="{{ url_for('company.delete_job', job_id=job.id) }}">
+                  Excluir
+                </button>
+              </div>
+            </div>
+
+            <div class="small text-slate-500 mt-2">
+              Criada em {{ job.created_at.strftime("%d/%m/%Y") if job.created_at else "" }}
+            </div>
+
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="small text-slate-500 mb-0">
+    Nenhuma vaga cadastrada ainda. Use o formulário acima para criar sua primeira vaga.
+  </p>
+{% endif %}
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- COLUNA DIREITA: você pode depois usar igual a "Destaque suas vagas", se quiser -->
+    <div class="col-lg-4">
+      <div class="card h-100">
+        <div class="card-body d-flex flex-column">
+          <h3 class="h6 mb-1">Dicas para atrair candidatos</h3>
+          <p class="small text-slate-500 mb-3">
+            Vagas bem escritas recebem muito mais candidaturas.
+          </p>
+          <ul class="pricing-list mb-3">
+            <li>Descreva claramente as responsabilidades</li>
+            <li>Informe benefícios e faixa salarial quando possível</li>
+            <li>Use títulos simples, que os candidatos realmente procuram</li>
+            <li>Mantenha suas vagas atualizadas</li>
+          </ul>
+          <div class="mt-auto">
+            <a href="{{ url_for('main.index') }}#planos" class="btn btn-primary w-100">
+              Destacar vagas com Premium
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<style>
+  .job-card{
+    border: 1px solid rgba(15, 23, 42, .08);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, .06);
+    border-radius: 16px;
+  }
+  .job-card:hover{
+    transform: translateY(-1px);
+    transition: .15s ease;
+  }
+</style>
+
+<script>
+  // Formata salário: usuário digita 1620 -> R$ 1.620,00
+  document.addEventListener("DOMContentLoaded", function () {
+    const salaryInput = document.querySelector('input[name="salary_range"]');
+    if (!salaryInput) return;
+
+    function formatBRLFromDigits(digits) {
+      if (!digits) return "";
+      const n = parseInt(digits, 10);
+      if (isNaN(n)) return "";
+      const parts = n.toString().split("");
+      // adiciona separador de milhar
+      let out = "";
+      let count = 0;
+      for (let i = parts.length - 1; i >= 0; i--) {
+        out = parts[i] + out;
+        count++;
+        if (count === 3 && i !== 0) {
+          out = "." + out;
+          count = 0;
+        }
+      }
+      return "R$ " + out + ",00";
+    }
+
+    salaryInput.addEventListener("input", function (e) {
+      const digits = e.target.value.replace(/\D/g, "");
+      e.target.value = formatBRLFromDigits(digits);
+    });
+
+    // ao focar, coloca cursor no fim (melhor UX)
+    salaryInput.addEventListener("focus", function (e) {
+      const v = e.target.value;
+      setTimeout(() => {
+        e.target.setSelectionRange(v.length, v.length);
+      }, 0);
+    });
+  });
+</script>
+
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const csrf = "{{ csrf_token() if csrf_token is defined else '' }}";
+
+    // restaura scroll após reload (toggle)
+    const restore = sessionStorage.getItem("jobs_scroll_y");
+    if (restore) {
+      window.scrollTo(0, parseInt(restore, 10));
+      sessionStorage.removeItem("jobs_scroll_y");
+    }
+
+    // Toggle status (sem submit de form)
+    document.querySelectorAll(".job-toggle").forEach((el) => {
+      el.addEventListener("change", async () => {
+        const url = el.getAttribute("data-toggle-url");
+        sessionStorage.setItem("jobs_scroll_y", String(window.scrollY));
+
+        try {
+          await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: csrf ? `csrf_token=${encodeURIComponent(csrf)}` : ""
+          });
+          window.location.reload();
+        } catch (e) {
+          el.checked = !el.checked;
+          alert("Não foi possível alterar o status da vaga. Tente novamente.");
+        }
+      });
+    });
+
+    // Excluir (AJAX) - mantém o usuário no lugar e remove o card
+    document.querySelectorAll(".job-delete").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const url = btn.getAttribute("data-delete-url");
+        if (!confirm("Tem certeza que deseja excluir esta vaga? Esta ação não pode ser desfeita.")) return;
+
+        try {
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: csrf ? `csrf_token=${encodeURIComponent(csrf)}` : ""
+          });
+
+          if (!res.ok) throw new Error("delete_failed");
+
+          const card = btn.closest(".col-12, .col-md-6, .col-xl-4") || btn.closest(".job-card");
+          if (card) card.remove();
+        } catch (e) {
+          alert("Não foi possível excluir a vaga. Tente novamente.");
+        }
+      });
+    });
+  });
+</script>
+
+{% endblock %}
