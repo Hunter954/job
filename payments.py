@@ -14,7 +14,7 @@ from models import Payment, User
 payments_bp = Blueprint("payments", __name__, url_prefix="/premium")
 
 # Preços (BRL)
-CANDIDATE_PRICE_CENTS = 1
+CANDIDATE_PRICE_CENTS = 990
 COMPANY_PRICE_CENTS = 1990
 
 
