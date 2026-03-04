@@ -2,14 +2,26 @@ import os
 
 
 def _normalize_database_url(url: str) -> str:
-    """Normaliza DATABASE_URL.
+    """Normaliza DATABASE_URL para o SQLAlchemy.
 
-    Railway e alguns providers usam `postgres://`, mas o SQLAlchemy espera `postgresql://`.
+    - Railway (e outros) podem fornecer `postgres://`
+    - Em alguns ambientes (ex.: Python 3.13), `psycopg2` pode falhar por depender de libpq
+      do sistema. Por isso usamos `psycopg` (v3) e forçamos o dialeto `postgresql+psycopg`.
     """
     if not url:
         return url
+
+    # SQLite: não mexe
+    if url.startswith("sqlite:"):
+        return url
+
+    # Converte esquemas comuns para o driver psycopg (v3)
     if url.startswith("postgres://"):
-        return url.replace("postgres://", "postgresql://", 1)
+        return url.replace("postgres://", "postgresql+psycopg://", 1)
+
+    if url.startswith("postgresql://") and "postgresql+" not in url:
+        return url.replace("postgresql://", "postgresql+psycopg://", 1)
+
     return url
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))

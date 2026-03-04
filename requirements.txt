@@ -5,5 +5,7 @@ Flask-Login==0.6.3
 Flask-WTF==1.2.1
 email-validator==2.1.0.post1
 gunicorn==21.2.0
-psycopg2-binary==2.9.9
+# psycopg2-binary pode falhar em ambientes com Python 3.13 por falta de libpq.
+# psycopg v3 com extra [binary] traz binários e funciona melhor em deploy.
+psycopg[binary]>=3.2
 python-dotenv==1.0.1
