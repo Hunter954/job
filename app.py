@@ -1,3 +1,6 @@
+import os
+import shutil
+
 from flask import Flask
 from config import Config
 from extensions import db, migrate, login_manager
@@ -67,9 +70,65 @@ def _ensure_schema():
     _add_column("user", "is_active", "BOOLEAN", "true")
 
 
+def _ensure_persistent_uploads(app: Flask):
+    """Railway (e similares) usam filesystem efêmero.
+
+    Para não perder imagens em redeploy, use um Volume montado em /data
+    e aponte /static/uploads -> /data/uploads via symlink.
+
+    - Mantém compatibilidade com os templates atuais (url_for('static', ...)).
+    - Não exige alterar candidate.py/company.py.
+    """
+    uploads_target = os.environ.get("UPLOADS_DIR", "/data/uploads")
+
+    # Só ativa se /data existir (quando você adicionar um Volume no Railway)
+    data_root = os.path.dirname(uploads_target.rstrip("/"))
+    if not os.path.isdir(data_root):
+        return
+
+    os.makedirs(uploads_target, exist_ok=True)
+    os.makedirs(os.path.join(uploads_target, "companies"), exist_ok=True)
+
+    static_uploads = os.path.join(app.root_path, "static", "uploads")
+    static_dir = os.path.dirname(static_uploads)
+    os.makedirs(static_dir, exist_ok=True)
+
+    # Se já for symlink, ok
+    if os.path.islink(static_uploads):
+        return
+
+    # Se existir uma pasta antiga, copia pro destino antes de trocar
+    if os.path.isdir(static_uploads):
+        try:
+            if os.listdir(static_uploads):
+                for item in os.listdir(static_uploads):
+                    src = os.path.join(static_uploads, item)
+                    dst = os.path.join(uploads_target, item)
+                    if os.path.isdir(src):
+                        shutil.copytree(src, dst, dirs_exist_ok=True)
+                    else:
+                        shutil.copy2(src, dst)
+        except Exception:
+            pass
+
+        try:
+            shutil.rmtree(static_uploads)
+        except Exception:
+            pass
+
+    # Cria symlink /static/uploads -> /data/uploads
+    try:
+        os.symlink(uploads_target, static_uploads)
+    except FileExistsError:
+        pass
+
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    # Persistência de uploads em produção (Railway Volume em /data)
+    _ensure_persistent_uploads(app)
 
     db.init_app(app)
     migrate.init_app(app, db)
