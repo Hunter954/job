@@ -1,24 +1,31 @@
-{% extends 'base.html' %}
-
+{% extends "base.html" %}
 {% block content %}
-<div class="container" style="max-width: 860px; margin: 30px auto;">
-  <h2 style="margin-bottom: 6px;">Pagamento via Pix</h2>
-  <p style="color:#666; margin-top:0;">Após o pagamento, o Admin pode confirmar a cobrança e liberar o Premium automaticamente.</p>
+<div class="container" style="max-width: 900px; padding: 30px 15px;">
+  <h2 style="font-size: 24px; font-weight: 900; margin-bottom: 6px;">Pagamento via Pix</h2>
+  <p style="color:#6b7280; margin-bottom: 18px;">Status: <strong>{{ payment.status }}</strong></p>
 
-  <div style="display:grid; grid-template-columns: 1.1fr 0.9fr; gap:16px; margin-top:18px;">
-    <div style="border:1px solid #eee; border-radius:14px; padding:16px;">
-      <h3 style="margin-top:0;">Copia e cola</h3>
-      <textarea style="width:100%; min-height:120px; border-radius:10px; border:1px solid #e5e7eb; padding:10px;" readonly>{{ payment.pix_payload }}</textarea>
-      <p style="color:#666; margin:10px 0 0;">Chave Pix: <b>{{ payment.pix_key or 'não configurada' }}</b></p>
+  {% if qrcode %}
+    <div style="border:1px solid #e5e7eb; border-radius:16px; padding:16px; background:#fff; margin-bottom: 14px;">
+      <div style="font-weight:800; margin-bottom:10px;">QR Code</div>
+      {% if qrcode.startswith('http') %}
+        <img src="{{ qrcode }}" alt="QR Code" style="max-width: 280px; width:100%;" />
+      {% else %}
+        <img src="data:image/png;base64,{{ qrcode }}" alt="QR Code" style="max-width: 280px; width:100%;" />
+      {% endif %}
     </div>
-    <div style="border:1px solid #eee; border-radius:14px; padding:16px;">
-      <h3 style="margin-top:0;">Resumo</h3>
-      <div style="font-size:18px;">Valor: <b>R$ {{ '%.2f'|format(payment.amount_cents/100) }}</b></div>
-      <div style="margin-top:6px; color:#666;">Status: <b>{{ payment.status }}</b></div>
-      <div style="margin-top:12px;">
-        <a class="btn" href="{{ url_for('payments.status') }}">Acompanhar status</a>
-      </div>
+  {% endif %}
+
+  <div style="border:1px solid #e5e7eb; border-radius:16px; padding:16px; background:#fff;">
+    <div style="font-weight:800; margin-bottom:10px;">Pix Copia e Cola</div>
+    <textarea readonly style="width:100%; min-height:120px; border:1px solid #e5e7eb; border-radius:12px; padding:10px;">{{ brcode }}</textarea>
+    <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
+      <button class="btn btn-secondary" type="button" onclick="navigator.clipboard.writeText('{{ brcode|e }}')">Copiar</button>
+      <a class="btn btn-outline" href="{{ url_for('payments.status') }}">Ver meus pagamentos</a>
     </div>
+  </div>
+
+  <div style="margin-top:14px; color:#6b7280; font-size:13px;">
+    Após o pagamento, seu Premium será ativado automaticamente via webhook (se configurado) ou pelo admin.
   </div>
 </div>
 {% endblock %}
