@@ -151,7 +151,7 @@
           </div>
           <div class="col-md-6">
             <label class="form-label small text-slate-500 mb-1">Ano de fundação</label>
-            <input type="text" class="form-control" name="founded_year" value="{{ profile.founded_year or '' }}" placeholder="Ex: 2018" maxlength="4">
+            <input type="number" class="form-control" name="founded_year" min="1800" max="2100" value="{{ profile.founded_year or '' }}" placeholder="Ex: 2018" maxlength="4">
           </div>
         </div>
 

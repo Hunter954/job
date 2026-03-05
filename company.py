@@ -619,9 +619,12 @@ def company_data():
 
         founded_year_raw = (request.form.get("founded_year") or "").strip()
         if founded_year_raw:
-            try:
-                profile.founded_year = int(founded_year_raw)
-            except Exception:
+            if founded_year_raw.isdigit():
+            profile.founded_year = int(founded_year_raw)
+        else:
+            flash("Ano de fundação inválido. Use apenas números (ex: 2018).", "warning")
+            profile.founded_year = None
+
                 flash("Ano de fundação inválido. Use apenas números (ex: 2018).", "warning")
         else:
             profile.founded_year = None
