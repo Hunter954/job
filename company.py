@@ -617,15 +617,17 @@ def company_data():
         profile.segment = (request.form.get("segment") or "").strip()
         profile.company_size = (request.form.get("company_size") or "").strip()
 
+        # founded_year é INTEGER no banco. Se vier vazio, vira NULL.
         founded_year_raw = (request.form.get("founded_year") or "").strip()
         if founded_year_raw:
             if founded_year_raw.isdigit():
-            profile.founded_year = int(founded_year_raw)
-        else:
-            flash("Ano de fundação inválido. Use apenas números (ex: 2018).", "warning")
-            profile.founded_year = None
-
-                flash("Ano de fundação inválido. Use apenas números (ex: 2018).", "warning")
+                profile.founded_year = int(founded_year_raw)
+            else:
+                profile.founded_year = None
+                flash(
+                    "Ano de fundação inválido. Use apenas números (ex: 2018).",
+                    "warning",
+                )
         else:
             profile.founded_year = None
 
