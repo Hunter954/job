@@ -25,6 +25,24 @@ from forms import CompanyProfileForm
 company_bp = Blueprint("company", __name__, template_folder="templates")
 
 
+def _get_or_create_company_profile(user: User) -> CompanyProfile:
+    """Retorna o CompanyProfile do usuário.
+
+    Em cenários raros (migração/bug/conta antiga), pode existir um usuário empresa
+    sem registro em CompanyProfile. Como `cnpj` é NOT NULL, criamos um placeholder
+    seguro para não quebrar rotas do painel.
+    """
+    profile = user.company_profile
+    if profile:
+        return profile
+
+    placeholder_cnpj = f"pending-{user.id}-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+    profile = CompanyProfile(user_id=user.id, cnpj=placeholder_cnpj)
+    db.session.add(profile)
+    db.session.commit()
+    return profile
+
+
 def _save_company_logo(file_storage):
     """Salva logo em /static/uploads/companies e retorna o filename."""
     if not file_storage or not getattr(file_storage, "filename", ""):
@@ -96,10 +114,10 @@ def dashboard():
     - Lista de candidatos interessados (CompanyInterest)
     - Candidatos recomendados (candidatos públicos em destaque)
     """
-    profile = current_user.company_profile
-    if not profile:
-        flash("Complete o perfil da sua empresa primeiro.", "warning")
-        return redirect(url_for("company.profile"))
+    profile = _get_or_create_company_profile(current_user)
+    if not profile.is_completed:
+        flash("Complete os dados da sua empresa para liberar o cadastro de vagas.", "warning")
+        return redirect(url_for("company.company_data"))
 
     # ---------- Métricas de vagas ----------
     jobs_query = Job.query.filter_by(company_id=profile.id)
@@ -419,11 +437,10 @@ def contact_candidate(candidate_id):
 @company_required
 def jobs():
     """Sessão de Vagas: cadastro, edição e listagem das vagas da empresa."""
-    profile = current_user.company_profile
-    if not profile:
-        profile = CompanyProfile(user_id=current_user.id)
-        db.session.add(profile)
-        db.session.commit()
+    profile = _get_or_create_company_profile(current_user)
+
+    # Bloqueia cadastro/edição de vagas até completar dados e aprovação do admin.
+    can_manage_jobs = bool(profile.is_completed) and bool(profile.is_approved)
 
     jobs_query = Job.query.filter_by(company_id=profile.id).order_by(Job.created_at.desc())
     jobs_list = jobs_query.all()
@@ -457,6 +474,10 @@ def jobs():
             return None, None
 
     if request.method == "POST":
+        if not profile.is_completed:
+            flash("Complete os dados da empresa antes de cadastrar vagas.", "warning")
+            return redirect(url_for("company.company_data"))
+
         if not profile.is_approved:
             flash(
                 "Sua empresa ainda não foi aprovada pelo Admin. Assim que aprovada, você poderá cadastrar e publicar vagas.",
@@ -518,7 +539,8 @@ def jobs():
         profile=profile,
         jobs=jobs_list,
         jobs_count=jobs_count,
-        edit_job=edit_job
+        edit_job=edit_job,
+        can_manage_jobs=can_manage_jobs,
     )
 
 
@@ -568,11 +590,7 @@ def toggle_job(job_id):
 @company_required
 def settings():
     """Configurações da empresa (aba Configurações)."""
-    profile = current_user.company_profile
-    if not profile:
-        profile = CompanyProfile(user_id=current_user.id)
-        db.session.add(profile)
-        db.session.commit()
+    profile = _get_or_create_company_profile(current_user)
 
     # aqui depois você pode colocar troca de senha da empresa, dados de faturamento, etc
     return render_template("company/settings.html", profile=profile)
@@ -583,11 +601,7 @@ def settings():
 @company_required
 def company_data():
     """Dados da empresa (tela 'Empresa' do painel)."""
-    profile = current_user.company_profile
-    if not profile:
-        profile = CompanyProfile(user_id=current_user.id, cnpj=f"pending-{current_user.id}")
-        db.session.add(profile)
-        db.session.commit()
+    profile = _get_or_create_company_profile(current_user)
 
     if request.method == "POST":
         action = (request.form.get("action") or "").strip().lower()
@@ -648,12 +662,7 @@ def company_data():
 @company_required
 def profile():
     """Completar/editar perfil da empresa."""
-    profile = current_user.company_profile
-    if not profile:
-        # fallback: em teoria é criado no registro. Mantemos um placeholder único.
-        profile = CompanyProfile(user_id=current_user.id, cnpj=f"pending-{current_user.id}")
-        db.session.add(profile)
-        db.session.commit()
+    profile = _get_or_create_company_profile(current_user)
 
     form = CompanyProfileForm(obj=profile)
     if form.validate_on_submit():

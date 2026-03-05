@@ -70,9 +70,14 @@
 
   {% include "company/_profile_header.html" %}
 
-  {% if profile and not profile.is_approved %}
+  {% if profile and (not profile.is_completed or not profile.is_approved) %}
     <div class="alert alert-warning" role="alert">
-      <b>Sua empresa ainda não foi aprovada.</b> Você pode completar seu perfil, mas o cadastro/publicação de vagas será liberado após aprovação pelo Admin.
+      {% if not profile.is_completed %}
+        <b>Complete os dados da sua empresa</b> para liberar o cadastro de vagas.
+        <a class="alert-link" href="{{ url_for('company.company_data') }}">Ir para Dados da Empresa</a>
+      {% elif not profile.is_approved %}
+        <b>Sua empresa ainda não foi aprovada.</b> Assim que o Admin aprovar, você poderá cadastrar e publicar vagas.
+      {% endif %}
     </div>
   {% endif %}
 
@@ -143,7 +148,7 @@
               <label class="form-label small text-slate-500">
                 Função <span class="text-danger">*</span>
               </label>
-              <input type="text" name="title" class="form-control auth-input"
+              <input type="text" name="title" class="form-control auth-input" {% if not can_manage_jobs %}disabled{% endif %}
                      value="{{ edit_job.title if edit_job else '' }}"
                      placeholder="Ex: Caixa, Vendedor(a), Atendente..." required>
             </div>
@@ -153,7 +158,7 @@
               <label class="form-label small text-slate-500">
                 Localização <span class="text-danger">*</span>
               </label>
-              <input type="text" name="city" class="form-control auth-input"
+              <input type="text" name="city" class="form-control auth-input" {% if not can_manage_jobs %}disabled{% endif %}
                      value="{{ edit_job.city if edit_job else '' }}"
                      placeholder="Cidade" required>
             </div>
@@ -163,7 +168,7 @@
   <div class="col-md-4 mb-3">
     <label class="form-label small text-slate-500">Modalidade</label>
     {% set v = edit_job.employment_type if edit_job else '' %}
-    <select name="employment_type" class="form-select auth-input">
+    <select name="employment_type" class="form-select auth-input" {% if not can_manage_jobs %}disabled{% endif %}>
       <option value="">Selecione...</option>
       <option value="CLT" {{ 'selected' if v=='CLT' else '' }}>CLT</option>
       <option value="PJ" {{ 'selected' if v=='PJ' else '' }}>PJ</option>
@@ -176,7 +181,7 @@
   <div class="col-md-4 mb-3">
     <label class="form-label small text-slate-500">Regime de trabalho</label>
     {% set r = edit_job.work_regime if edit_job else '' %}
-    <select name="work_regime" class="form-select auth-input">
+    <select name="work_regime" class="form-select auth-input" {% if not can_manage_jobs %}disabled{% endif %}>
       <option value="">Selecione...</option>
       <option value="Presencial" {{ 'selected' if r=='Presencial' else '' }}>Presencial</option>
       <option value="Home Office" {{ 'selected' if r=='Home Office' else '' }}>Home Office</option>
@@ -187,7 +192,7 @@
 
   <div class="col-md-4 mb-3">
     <label class="form-label small text-slate-500">Faixa salarial</label>
-    <input type="text" name="salary_range" class="form-control auth-input"
+    <input type="text" name="salary_range" class="form-control auth-input" {% if not can_manage_jobs %}disabled{% endif %}
            value="{% if edit_job and edit_job.salary_min is not none %}{{ brl(edit_job.salary_min) }}{% endif %}"
            placeholder="Ex: 1620">
   </div>
@@ -197,12 +202,12 @@
             <!-- Descrição -->
             <div class="mb-3">
               <label class="form-label small text-slate-500">Descrição da vaga</label>
-              <textarea name="description" rows="4" class="form-control auth-input"
+              <textarea name="description" rows="4" class="form-control auth-input" {% if not can_manage_jobs %}disabled{% endif %}
                         placeholder="Descreva as atribuições, responsabilidades e requisitos para a posição.">{{ edit_job.description if edit_job else "" }}</textarea>
             </div>
 
             <div class="d-flex justify-content-end flex-wrap gap-2">
-              <button type="submit" class="btn btn-primary">
+              <button type="submit" class="btn btn-primary" {% if not can_manage_jobs %}disabled{% endif %}>
                 {{ "Atualizar" if edit_job else "Cadastrar" }}
               </button>
             </div>
