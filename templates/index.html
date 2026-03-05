@@ -93,31 +93,88 @@
             <div class="row g-3">
                 {% for job in jobs %}
                     <div class="col-md-6">
-                        <div class="job-card-light {% if job.is_sponsored %}job-card-light--sponsored{% endif %}">
-                            <div class="job-card-left">
-                                <!-- badges -->
-                                <div class="job-card-badges">
-                                    {% if job.is_sponsored %}
-                                        <span class="badge job-badge-sponsored">Patrocinado</span>
-                                    {% endif %}
+                        <div class="job-card-home">
+                            <div class="job-card-home-top">
+                                <div class="job-card-home-pills">
                                     {% if job.employment_type %}
-                                        <span class="badge job-badge-tag">{{ job.employment_type }}</span>
+                                        <span class="job-pill job-pill--type">{{ job.employment_type }}</span>
                                     {% endif %}
                                 </div>
 
-                                <!-- título -->
-                                <h3 class="job-card-title small fw-semibold mb-1">{{ job.title }}</h3>
+                                {% if job.is_sponsored %}
+                                    <span class="job-pill job-pill--premium">
+                                        <i class="bi bi-star-fill"></i>
+                                        PREMIUM
+                                    </span>
+                                {% endif %}
+                            </div>
 
-                                <!-- linha de infos -->
-                                <div class="job-card-meta">
-                                    <span>
-                                        <i class="bi bi-building me-1"></i>
-                                        {% if job.company_profile and job.company_profile.user %}
-                                            {% set company_name = job.company_profile.user.company_name %}
-                                            {% set can_see_company = (current_user.is_authenticated and current_user.role == 'company') or (current_user.is_authenticated and current_user.role == 'candidate' and current_user.is_premium) %}
-                                            {% if can_see_company %}
-                                                {{ company_name }}
-                                            {% else %}
+                            <h3 class="job-card-home-title">{{ job.title }}</h3>
+
+                            <div class="job-card-home-meta">
+                                <span class="job-meta-item">
+                                    <i class="bi bi-building"></i>
+                                    {% if job.company_profile and job.company_profile.user %}
+                                        {% set company_name = job.company_profile.user.company_name %}
+                                        {% set can_see_company = (current_user.is_authenticated and current_user.role == 'company') or (current_user.is_authenticated and current_user.role == 'candidate' and current_user.is_premium) %}
+                                        {% if can_see_company %}
+                                            {{ company_name }}
+                                        {% else %}
+                                            {{ obfuscate_company(company_name) }}
+                                        {% endif %}
+                                    {% else %}
+                                        Empresa confidencial
+                                    {% endif %}
+                                </span>
+
+                                <span class="job-meta-item">
+                                    <i class="bi bi-geo-alt"></i>
+                                    {{ job.city or "Localização não informada" }}
+                                </span>
+
+                                {% if job.salary_min or job.salary_max %}
+                                    <span class="job-meta-item job-meta-item--salary">
+                                        <i class="bi bi-cash-stack"></i>
+                                        R$
+                                        {% if job.salary_min %}{{ "%.0f"|format(job.salary_min) }}{% endif %}
+                                        {% if job.salary_max %} - {{ "%.0f"|format(job.salary_max) }}{% endif %}
+                                    </span>
+                                {% endif %}
+                            </div>
+
+                            <div class="job-card-home-divider"></div>
+
+                            <div class="job-card-home-bottom">
+                                <div class="job-meta-date">
+                                    <i class="bi bi-calendar"></i>
+                                    {% if job.created_at %}
+                                        Publicada em {{ job.created_at.strftime("%d/%m/%Y") }}
+                                    {% else %}
+                                        Data não informada
+                                    {% endif %}
+                                </div>
+
+                                {% if current_user.is_authenticated and current_user.role == 'candidate' %}
+                                    <a href="{{ url_for('candidate.apply', job_id=job.id) }}" class="btn job-card-home-btn">
+                                        Candidatar
+                                    </a>
+                                {% else %}
+                                    <a href="{{ url_for('auth.choose_type') }}" class="btn job-card-home-btn">
+                                        Candidatar
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="{{ url_for('main.job_list') }}" class="btn btn-outline-load">
+                    Carregar mais vagas →
+                </a>
+            </div>
+{% else %}
                                                 {{ obfuscate_company(company_name) }}
                                             {% endif %}
                                         {% else %}

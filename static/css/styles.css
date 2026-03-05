@@ -1343,6 +1343,157 @@ body {
   filter: brightness(1.05);
 }
 
+
+
+/* Card de vaga (Home) - layout igual ao print */
+.job-card-home{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:18px;
+  padding:16px 18px;
+  box-shadow:0 14px 30px rgba(15,23,42,0.06);
+}
+
+.job-card-home-top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:8px;
+}
+
+.job-card-home-pills{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.job-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 14px;
+  border-radius:999px;
+  font-size:0.85rem;
+  font-weight:700;
+  line-height:1;
+  border:1px solid rgba(15,23,42,0.08);
+}
+
+.job-pill--type{
+  color:#ffffff;
+  background:linear-gradient(180deg,#60a5fa 0%,#2563eb 100%);
+  border-color:rgba(37,99,235,0.35);
+  box-shadow:0 10px 18px rgba(37,99,235,0.18);
+}
+
+.job-pill--premium{
+  color:#7c4a00;
+  background:linear-gradient(180deg,#fde68a 0%,#fbbf24 100%);
+  border-color:rgba(251,191,36,0.55);
+  white-space:nowrap;
+}
+
+.job-pill--premium i{
+  font-size:0.9rem;
+}
+
+.job-card-home-title{
+  font-size:1.4rem;
+  font-weight:800;
+  color:#0f172a;
+  margin:0 0 10px 0;
+}
+
+.job-card-home-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:14px;
+  color:#334155;
+  font-size:1.02rem;
+}
+
+.job-meta-item{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+}
+
+.job-meta-item i{
+  color:#64748b;
+  font-size:1.05rem;
+}
+
+.job-meta-item--salary{
+  font-weight:800;
+  color:#0f172a;
+}
+
+.job-card-home-divider{
+  height:1px;
+  background:#e5e7eb;
+  margin:14px 0 12px;
+}
+
+.job-card-home-bottom{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.job-meta-date{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  color:#475569;
+  font-size:1.02rem;
+}
+
+.job-meta-date i{
+  color:#64748b;
+  font-size:1.05rem;
+}
+
+.job-card-home-btn{
+  background:linear-gradient(180deg,#60a5fa 0%,#2563eb 100%);
+  border:none;
+  border-radius:999px;
+  padding:10px 22px;
+  font-size:1.05rem;
+  font-weight:800;
+  color:#ffffff;
+  white-space:nowrap;
+  box-shadow:0 14px 24px rgba(37,99,235,0.22);
+}
+
+.job-card-home-btn:hover{
+  filter:brightness(0.97);
+  color:#ffffff;
+}
+
+@media (max-width:768px){
+  .job-card-home{
+    padding:14px 14px;
+  }
+  .job-card-home-title{
+    font-size:1.25rem;
+  }
+  .job-card-home-meta{
+    font-size:0.95rem;
+    gap:10px;
+  }
+  .job-card-home-bottom{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+  .job-card-home-btn{
+    width:100%;
+    text-align:center;
+  }
+}
+
+
 /* Responsivo */
 @media (max-width: 992px) {
   .header-nav {
