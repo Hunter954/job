@@ -9,54 +9,53 @@
   {% set active_tab = 'company' %}
   {% include "company/_dashboard_tabs.html" %}
 
-  <div class="card">
-    <div class="card-body">
-      <style>
-        .company-logo-preview{width:72px;height:72px;border-radius:18px;overflow:hidden;border:1px solid rgba(15,27,45,.12);background:#fff;box-shadow:0 8px 18px rgba(0,0,0,.06)}
-        .company-logo-preview img{width:100%;height:100%;object-fit:cover;display:block}
-      </style>
+  <style>
+    .company-logo-preview{
+      width:72px;height:72px;border-radius:18px;overflow:hidden;
+      border:1px solid rgba(15,27,45,.12);background:#fff;
+      box-shadow:0 8px 18px rgba(0,0,0,.06)
+    }
+    .company-logo-preview img{width:100%;height:100%;object-fit:cover;display:block}
+  </style>
 
-      <!-- FOTO / LOGO (salvar separado, igual ao candidato) -->
-      <div class="mb-3">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <div>
-            <h3 class="h6 mb-0">Foto de perfil</h3>
-            <p class="small text-slate-500 mb-0">Essa foto aparece nas suas vagas e no seu card público.</p>
+  <!-- CARD 1: Foto de perfil (FORM separado, botão separado embaixo) -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <h5 class="mb-1">Foto de perfil</h5>
+      <p class="text-muted mb-3">Essa foto aparece nas suas vagas e no seu card público.</p>
+
+      <form method="POST" action="{{ url_for('company.company_data') }}" enctype="multipart/form-data">
+        {% if csrf_token is defined %}
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% endif %}
+        <input type="hidden" name="action" value="upload_logo">
+
+        <div class="d-flex align-items-center gap-3">
+          <div class="company-logo-preview">
+            <img
+              src="{{ url_for('static', filename=profile.logo_filename) if profile and profile.logo_filename else url_for('static', filename='img/default-company.png') }}"
+              alt="Logo"
+            >
+          </div>
+
+          <div class="flex-grow-1">
+            <input class="form-control" type="file" name="logo" accept=".png,.jpg,.jpeg,.webp" />
+            <small class="text-muted">PNG, JPG, JPEG ou WEBP (até 5MB).</small>
           </div>
         </div>
 
-        <form method="post" enctype="multipart/form-data" class="mt-2" novalidate>
-          {% if csrf_token is defined %}
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          {% endif %}
-          <input type="hidden" name="action" value="logo">
+        <div class="d-flex justify-content-end mt-3">
+          <button type="submit" class="btn btn-outline-primary">
+            <i class="bi bi-upload me-1"></i> Salvar foto
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-          <div class="d-flex align-items-center gap-3 flex-wrap">
-            <div class="company-logo-preview">
-              {% if profile.logo_filename %}
-                <img src="{{ url_for('static', filename='uploads/companies/' ~ profile.logo_filename) }}" alt="Logo">
-              {% else %}
-                <img src="{{ url_for('static', filename='img/default-avatar.png') }}" alt="Logo">
-              {% endif %}
-            </div>
-
-            <div class="flex-grow-1" style="min-width:260px">
-              <input class="form-control" type="file" name="logo" accept="image/png,image/jpeg,image/jpg,image/webp">
-              <div class="form-text">PNG, JPG, JPEG ou WEBP (até 5MB).</div>
-            </div>
-
-            <div class="ms-auto">
-              <button class="btn btn-outline-primary" type="submit">
-                <i class="bi bi-upload me-1"></i> Salvar foto
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-
-      <hr class="my-4">
-
-      <!-- INFORMAÇÕES (salvar separado) -->
+  <!-- CARD 2: Dados da empresa (FORM separado) -->
+  <div class="card">
+    <div class="card-body">
       <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
         <div>
           <h3 class="h6 mb-0">Dados da empresa</h3>
@@ -64,10 +63,11 @@
         </div>
       </div>
 
-      <form method="post" novalidate>
+      <form method="POST" action="{{ url_for('company.company_data') }}" novalidate>
         {% if csrf_token is defined %}
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         {% endif %}
+        <input type="hidden" name="action" value="save_company">
 
         <div class="row g-3">
           <div class="col-md-8">
@@ -151,7 +151,8 @@
           </div>
           <div class="col-md-6">
             <label class="form-label small text-slate-500 mb-1">Ano de fundação</label>
-            <input type="number" class="form-control" name="founded_year" min="1800" max="2100" value="{{ profile.founded_year or '' }}" placeholder="Ex: 2018" maxlength="4">
+            <input type="number" class="form-control" name="founded_year" min="1800" max="2100"
+                   value="{{ profile.founded_year or '' }}" placeholder="Ex: 2018">
           </div>
         </div>
 
@@ -166,7 +167,6 @@
           </button>
         </div>
       </form>
-
     </div>
   </div>
 
