@@ -592,8 +592,8 @@ def company_data():
     if request.method == "POST":
         action = (request.form.get("action") or "").strip().lower()
 
-        # ---- Salvar apenas a foto/logomarca ----
-        if action == "logo":
+        # ✅ Salvar apenas a foto/logomarca (aceita os 2 nomes)
+        if action in ("logo", "upload_logo"):
             logo_file = request.files.get("logo")
             saved = _save_company_logo(logo_file)
             if saved:
@@ -604,8 +604,7 @@ def company_data():
                 flash("Selecione uma imagem válida para enviar.", "warning")
             return redirect(url_for("company.company_data"))
 
-        # ---- Salvar informações ----
-        # Nome, email e CNPJ NÃO podem ser alterados aqui.
+        # ✅ Salvar informações (Nome, email e CNPJ NÃO podem ser alterados aqui.)
         profile.phone = (request.form.get("phone") or "").strip()
         profile.website = (request.form.get("website") or "").strip()
         profile.cep = (request.form.get("cep") or "").strip()
@@ -617,17 +616,20 @@ def company_data():
         profile.segment = (request.form.get("segment") or "").strip()
         profile.company_size = (request.form.get("company_size") or "").strip()
 
-        # founded_year é INTEGER no banco. Se vier vazio, vira NULL.
+        # ✅ founded_year é INTEGER no banco. Se vier vazio -> NULL. Se vier lixo -> NULL + aviso.
         founded_year_raw = (request.form.get("founded_year") or "").strip()
         if founded_year_raw:
-            if founded_year_raw.isdigit():
-                profile.founded_year = int(founded_year_raw)
+            # pega só dígitos (evita "2018 " ou "2018/...")
+            digits = "".join(ch for ch in founded_year_raw if ch.isdigit())
+            if digits:
+                try:
+                    profile.founded_year = int(digits)
+                except Exception:
+                    profile.founded_year = None
+                    flash("Ano de fundação inválido. Use apenas números (ex: 2018).", "warning")
             else:
                 profile.founded_year = None
-                flash(
-                    "Ano de fundação inválido. Use apenas números (ex: 2018).",
-                    "warning",
-                )
+                flash("Ano de fundação inválido. Use apenas números (ex: 2018).", "warning")
         else:
             profile.founded_year = None
 
