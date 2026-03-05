@@ -1,5 +1,62 @@
 {% extends "base.html" %}
-{% block title %}Vagas da Empresa - EmpregaJá{% endblock %}
+{% block title %}Vagas da Empresa - EmpregaJá
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const csrf = "{{ csrf_token() if csrf_token is defined else '' }}";
+
+    // restaura scroll após reload (toggle)
+    const restore = sessionStorage.getItem("jobs_scroll_y");
+    if (restore) {
+      window.scrollTo(0, parseInt(restore, 10));
+      sessionStorage.removeItem("jobs_scroll_y");
+    }
+
+    // Toggle status (sem submit de form)
+    document.querySelectorAll(".job-toggle").forEach((el) => {
+      el.addEventListener("change", async () => {
+        const url = el.getAttribute("data-toggle-url");
+        sessionStorage.setItem("jobs_scroll_y", String(window.scrollY));
+
+        try {
+          await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: csrf ? `csrf_token=${encodeURIComponent(csrf)}` : ""
+          });
+          window.location.reload();
+        } catch (e) {
+          el.checked = !el.checked;
+          alert("Não foi possível alterar o status da vaga. Tente novamente.");
+        }
+      });
+    });
+
+    // Excluir (AJAX) - mantém o usuário no lugar e remove o card
+    document.querySelectorAll(".job-delete").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const url = btn.getAttribute("data-delete-url");
+        if (!confirm("Tem certeza que deseja excluir esta vaga? Esta ação não pode ser desfeita.")) return;
+
+        try {
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: csrf ? `csrf_token=${encodeURIComponent(csrf)}` : ""
+          });
+
+          if (!res.ok) throw new Error("delete_failed");
+
+          const card = btn.closest(".col-12, .col-md-6, .col-xl-4") || btn.closest(".job-card");
+          if (card) card.remove();
+        } catch (e) {
+          alert("Não foi possível excluir a vaga. Tente novamente.");
+        }
+      });
+    });
+  });
+</script>
+
+{% endblock %}
 
 {% block content %}
 
@@ -71,9 +128,7 @@
           </p>
 
           <form method="post">
-            {% if csrf_token is defined %}
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            {% endif %}
+            {{ csrf_token() if csrf_token is defined }}
             <input type="hidden" name="job_id" value="{{ edit_job.id if edit_job else '' }}">
 
             <!-- Nome da empresa (auto) -->
@@ -217,13 +272,14 @@
             <div class="mt-auto pt-3 d-flex justify-content-between align-items-center">
 
               <!-- Toggle ON/OFF -->
-              <div class="form-check form-switch m-0">
-                <input
-                  class="form-check-input job-toggle"
-                  type="checkbox"
-                  data-toggle-url="{{ url_for('company.toggle_job', job_id=job.id) }}"
-                  {% if job.is_active %}checked{% endif %}>
-              </div>
+              <form method="post" action="{{ url_for('company.toggle_job', job_id=job.id) }}">
+                {{ csrf_token() if csrf_token is defined }}
+                <div class="form-check form-switch m-0">
+                  <input class="form-check-input" type="checkbox"
+                         data-toggle-url="{{ url_for('company.toggle_job', job_id=job.id) }}" class="form-check-input job-toggle"
+                         {% if job.is_active %}checked{% endif %}>
+                </div>
+              </form>
 
               <div class="d-flex gap-2">
                 <a class="btn btn-outline-primary btn-sm"

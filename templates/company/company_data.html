@@ -15,6 +15,48 @@
         .company-logo-preview{width:72px;height:72px;border-radius:18px;overflow:hidden;border:1px solid rgba(15,27,45,.12);background:#fff;box-shadow:0 8px 18px rgba(0,0,0,.06)}
         .company-logo-preview img{width:100%;height:100%;object-fit:cover;display:block}
       </style>
+
+      <!-- FOTO / LOGO (salvar separado, igual ao candidato) -->
+      <div class="mb-3">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div>
+            <h3 class="h6 mb-0">Foto de perfil</h3>
+            <p class="small text-slate-500 mb-0">Essa foto aparece nas suas vagas e no seu card público.</p>
+          </div>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="mt-2" novalidate>
+          {% if csrf_token is defined %}
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {% endif %}
+          <input type="hidden" name="action" value="logo">
+
+          <div class="d-flex align-items-center gap-3 flex-wrap">
+            <div class="company-logo-preview">
+              {% if profile.logo_filename %}
+                <img src="{{ url_for('static', filename='uploads/companies/' ~ profile.logo_filename) }}" alt="Logo">
+              {% else %}
+                <img src="{{ url_for('static', filename='img/default-avatar.png') }}" alt="Logo">
+              {% endif %}
+            </div>
+
+            <div class="flex-grow-1" style="min-width:260px">
+              <input class="form-control" type="file" name="logo" accept="image/png,image/jpeg,image/jpg,image/webp">
+              <div class="form-text">PNG, JPG, JPEG ou WEBP (até 5MB).</div>
+            </div>
+
+            <div class="ms-auto">
+              <button class="btn btn-outline-primary" type="submit">
+                <i class="bi bi-upload me-1"></i> Salvar foto
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <hr class="my-4">
+
+      <!-- INFORMAÇÕES (salvar separado) -->
       <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
         <div>
           <h3 class="h6 mb-0">Dados da empresa</h3>
@@ -22,69 +64,51 @@
         </div>
       </div>
 
-      <form method="post" enctype="multipart/form-data" novalidate>
+      <form method="post" novalidate>
         {% if csrf_token is defined %}
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         {% endif %}
 
-        <!-- Logo + Nome -->
         <div class="row g-3">
-          <div class="col-md-4">
-            <label class="form-label small text-slate-500 mb-1">Logomarca</label>
-            <div class="d-flex align-items-center gap-3">
-              <div class="company-logo-preview">
-                {% if profile.logo_filename %}
-                  <img src="{{ url_for('static', filename='uploads/companies/' ~ profile.logo_filename) }}" alt="Logo">
-                {% else %}
-                  <img src="{{ url_for('static', filename='img/default-avatar.png') }}" alt="Logo">
-                {% endif %}
-              </div>
-              <div class="flex-grow-1">
-                <input class="form-control" type="file" name="logo" accept="image/*">
-                <div class="form-text">PNG/JPG. Se enviar uma nova, ela substitui a atual.</div>
-              </div>
-            </div>
-          </div>
-
           <div class="col-md-8">
             <label class="form-label small text-slate-500 mb-1">Nome da empresa</label>
-            <input type="text" class="form-control" name="company_name" value="{{ current_user.company_name or '' }}" placeholder="Nome da empresa">
+            <input type="text" class="form-control" value="{{ current_user.company_name or '' }}" readonly>
+            <div class="form-text">(Por segurança, o nome da empresa não pode ser alterado.)</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small text-slate-500 mb-1">CNPJ</label>
+            <input type="text" class="form-control" value="{{ profile.cnpj or '' }}" readonly>
           </div>
         </div>
 
-        <!-- CNPJ / Email -->
         <div class="row g-3 mt-1">
-          <div class="col-md-4">
-            <label class="form-label small text-slate-500 mb-1">CNPJ</label>
-            <input type="text" class="form-control" name="cnpj" value="{{ profile.cnpj or '' }}" placeholder="00.000.000/0000-00" readonly>
-            <div class="form-text">(Por segurança, o CNPJ fica somente leitura.)</div>
-          </div>
           <div class="col-md-8">
             <label class="form-label small text-slate-500 mb-1">E-mail</label>
             <input type="email" class="form-control" value="{{ current_user.email or '' }}" readonly>
           </div>
-        </div>
-
-        <!-- WhatsApp / Site -->
-        <div class="row g-3 mt-1">
-          <div class="col-md-6">
+          <div class="col-md-4">
             <label class="form-label small text-slate-500 mb-1">WhatsApp</label>
             <input type="text" class="form-control" name="phone" value="{{ profile.phone or '' }}" placeholder="(DD) 9XXXX-XXXX">
           </div>
+        </div>
+
+        <div class="row g-3 mt-1">
           <div class="col-md-6">
             <label class="form-label small text-slate-500 mb-1">Site</label>
             <input type="text" class="form-control" name="website" value="{{ profile.website or '' }}" placeholder="https://">
           </div>
+          <div class="col-md-6">
+            <label class="form-label small text-slate-500 mb-1">Segmento da empresa</label>
+            <input type="text" class="form-control" name="segment" value="{{ profile.segment or '' }}" placeholder="Ex: Tecnologia, Varejo, Indústria...">
+          </div>
         </div>
 
-        <!-- CEP -->
         <div class="mt-3">
           <label class="form-label small text-slate-500 mb-1">CEP</label>
           <input type="text" class="form-control" id="cep" name="cep" value="{{ profile.cep or '' }}" placeholder="00000-000" maxlength="9">
           <div class="small text-danger mt-1 d-none" id="cep-error">CEP inválido.</div>
         </div>
 
-        <!-- Endereço / Número -->
         <div class="row g-3 mt-1">
           <div class="col-md-8">
             <label class="form-label small text-slate-500 mb-1">Endereço</label>
@@ -96,7 +120,6 @@
           </div>
         </div>
 
-        <!-- Bairro / Cidade / UF -->
         <div class="row g-3 mt-1">
           <div class="col-md-5">
             <label class="form-label small text-slate-500 mb-1">Bairro</label>
@@ -112,23 +135,26 @@
           </div>
         </div>
 
-        <!-- Segmento / Tamanho / Fundação -->
         <div class="row g-3 mt-1">
           <div class="col-md-6">
-            <label class="form-label small text-slate-500 mb-1">Segmento da empresa</label>
-            <input type="text" class="form-control" name="segment" value="{{ profile.segment or '' }}" placeholder="Ex: Tecnologia, Varejo, Indústria...">
+            <label class="form-label small text-slate-500 mb-1">Tamanho da empresa (funcionários)</label>
+            <select class="form-select" name="company_size">
+              {% set cs = (profile.company_size or '') %}
+              <option value="" {% if cs=='' %}selected{% endif %}>Selecione...</option>
+              <option value="1-5" {% if cs=='1-5' %}selected{% endif %}>1-5</option>
+              <option value="6-10" {% if cs=='6-10' %}selected{% endif %}>6-10</option>
+              <option value="11-20" {% if cs=='11-20' %}selected{% endif %}>11-20</option>
+              <option value="21-50" {% if cs=='21-50' %}selected{% endif %}>21-50</option>
+              <option value="51-100" {% if cs=='51-100' %}selected{% endif %}>51-100</option>
+              <option value="+100" {% if cs=='+100' %}selected{% endif %}>+100</option>
+            </select>
           </div>
-          <div class="col-md-3">
-            <label class="form-label small text-slate-500 mb-1">Tamanho (funcionários)</label>
-            <input type="text" class="form-control" name="company_size" value="{{ profile.company_size or '' }}" placeholder="Ex: 1-10, 11-50...">
-          </div>
-          <div class="col-md-3">
+          <div class="col-md-6">
             <label class="form-label small text-slate-500 mb-1">Ano de fundação</label>
             <input type="text" class="form-control" name="founded_year" value="{{ profile.founded_year or '' }}" placeholder="Ex: 2018" maxlength="4">
           </div>
         </div>
 
-        <!-- Descrição -->
         <div class="mt-3">
           <label class="form-label small text-slate-500 mb-1">Descrição da empresa</label>
           <textarea class="form-control" name="description" rows="5" placeholder="Conte um pouco sobre a empresa...">{{ profile.description or '' }}</textarea>
@@ -136,17 +162,17 @@
 
         <div class="d-flex justify-content-end mt-3">
           <button class="btn btn-primary" type="submit">
-            <i class="bi bi-save me-1"></i> Salvar
+            <i class="bi bi-save me-1"></i> Salvar perfil
           </button>
         </div>
       </form>
+
     </div>
   </div>
 
 </div>
 
 <script>
-  // Mesmo comportamento do painel do candidato (ViaCEP)
   document.addEventListener("DOMContentLoaded", function () {
     const cepInput = document.getElementById("cep");
     const cepError = document.getElementById("cep-error");
@@ -156,7 +182,6 @@
     const neighborhoodInput = document.getElementById("neighborhood");
 
     function onlyDigits(v) { return (v || "").replace(/\D/g, ""); }
-
     function formatCep(v) {
       const d = onlyDigits(v).slice(0, 8);
       if (d.length <= 5) return d;
@@ -169,7 +194,6 @@
         cepError.classList.remove("d-none");
         return;
       }
-
       try {
         const res = await fetch(`https://viacep.com.br/ws/${clean}/json/`);
         const data = await res.json();

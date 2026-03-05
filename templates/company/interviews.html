@@ -3,7 +3,6 @@
 
 {% block content %}
 <div class="container-xl my-4">
-
   {% include "company/_profile_header.html" %}
 
   {% set active_tab = 'interviews' %}
@@ -11,70 +10,46 @@
 
   <div class="card">
     <div class="card-body">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <div>
-          <h3 class="h6 mb-0">Entrevistas</h3>
-          <p class="small text-slate-500 mb-0">Entrevistas marcadas e histórico.</p>
-        </div>
-      </div>
+      <h3 class="h6 mb-0">Entrevistas</h3>
+      <p class="small text-slate-500">Aqui ficam as candidaturas que já estão em entrevista.</p>
 
-      {% if interviews %}
-        <div class="list-group list-group-flush">
-          {% for app in interviews %}
-            {% set cand = app.candidate_profile %}
-            <div class="list-group-item px-0 py-3 d-flex justify-content-between align-items-start flex-wrap gap-3">
-
-              <div class="d-flex align-items-start">
-                <div class="avatar avatar-sm me-3">
-                  {{ cand.initials() if cand else "?" }}
-                </div>
-                <div>
-                  <div class="fw-semibold small mb-1">
-                    {{ cand.user.full_name if cand and cand.user else "Candidato" }}
-                    <span class="text-slate-400">· {{ app.job.title if app.job else "Vaga" }}</span>
-                  </div>
-                  <div class="small text-slate-500">
+      {% if interviews and interviews|length > 0 %}
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead>
+              <tr>
+                <th>Vaga</th>
+                <th>Candidato</th>
+                <th>Data/Hora</th>
+                <th>Local</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for app in interviews %}
+                <tr>
+                  <td class="fw-semibold">{{ app.job.title if app.job else '-' }}</td>
+                  <td>{{ app.candidate_profile.full_name if app.candidate_profile else 'Candidato' }}</td>
+                  <td>
                     {% if app.interview_datetime %}
-                      <i class="bi bi-calendar-event me-1"></i>
-                      {{ app.interview_datetime.strftime("%d/%m/%Y %H:%M") }}
+                      {{ app.interview_datetime.strftime('%d/%m/%Y %H:%M') }}
+                    {% else %}
+                      -
                     {% endif %}
-                    {% if app.interview_location %}
-                      <span class="ms-2"><i class="bi bi-geo-alt me-1"></i>{{ app.interview_location }}</span>
-                    {% endif %}
-                  </div>
-                </div>
-              </div>
-
-              <div class="text-end">
-                <div class="small text-slate-500 mb-2">
-                  {% if app.status %}
-                    <span class="badge bg-light text-dark">{{ app.status.replace('_', ' ') }}</span>
-                  {% endif %}
-                </div>
-                <div class="d-flex justify-content-end gap-2">
-                  {% if cand and cand.user %}
-                    <form method="post" action="{{ url_for('chat.start') }}" style="display:inline">
-                      <input type="hidden" name="candidate_user_id" value="{{ cand.user.id }}">
-                      {% if app.job %}<input type="hidden" name="job_id" value="{{ app.job.id }}">{% endif %}
-                      {% if csrf_token is defined %}
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                      {% endif %}
-                      <button class="btn btn-sm btn-outline-load" type="submit">Chat</button>
-                    </form>
-                  {% endif %}
-
-                  <a class="btn btn-sm btn-primary" href="{{ url_for('company.candidates') }}">Gerenciar candidaturas</a>
-                </div>
-              </div>
-            </div>
-          {% endfor %}
+                  </td>
+                  <td>{{ app.interview_location or '-' }}</td>
+                  <td><span class="badge bg-primary-subtle text-primary">{{ app.status }}</span></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
       {% else %}
-        <p class="small text-slate-400 mb-0">Ainda não há entrevistas marcadas.</p>
+        <div class="alert alert-light border mb-0">
+          Nenhuma entrevista por aqui ainda.
+        </div>
       {% endif %}
-
     </div>
   </div>
-
 </div>
 {% endblock %}

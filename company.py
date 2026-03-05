@@ -21,32 +21,6 @@ from models import (
 
 from forms import CompanyProfileForm
 
-
-def _company_completion_percent(profile: CompanyProfile, user: User) -> int:
-    """Calcula um percentual simples de completude do perfil da empresa."""
-    if not profile or not user:
-        return 0
-    fields = [
-        (user.company_name or "").strip(),
-        (profile.cnpj or "").strip(),
-        (user.email or "").strip(),
-        (profile.phone or "").strip(),
-        (profile.cep or "").strip(),
-        (profile.address or "").strip(),
-        (profile.house_number or "").strip(),
-        (profile.neighborhood or "").strip(),
-        (profile.city or "").strip(),
-        (profile.state or "").strip(),
-        (profile.segment or "").strip(),
-        (profile.company_size or "").strip(),
-        (profile.founded_year or "").strip(),
-        (profile.description or "").strip(),
-        (profile.logo_filename or "").strip(),
-    ]
-    total = len(fields)
-    filled = sum(1 for v in fields if v)
-    return int(round((filled / total) * 100)) if total else 0
-
 # Blueprint da empresa
 company_bp = Blueprint("company", __name__, template_folder="templates")
 
@@ -125,7 +99,7 @@ def dashboard():
     profile = current_user.company_profile
     if not profile:
         flash("Complete o perfil da sua empresa primeiro.", "warning")
-        return redirect(url_for("company.company_data"))
+        return redirect(url_for("company.profile"))
 
     # ---------- Métricas de vagas ----------
     jobs_query = Job.query.filter_by(company_id=profile.id)
@@ -249,12 +223,9 @@ def dashboard():
 
     current_year = datetime.utcnow().year
 
-    completion_percent = _company_completion_percent(profile, current_user)
-
     return render_template(
         "company/dashboard.html",
         profile=profile,
-        completion_percent=completion_percent,
         jobs_count=total_jobs_count,
         interviews_count=interviews_count,
         # métricas
@@ -313,7 +284,6 @@ def candidates():
     return render_template(
         "company/candidates.html",
         profile=profile,
-        completion_percent=_company_completion_percent(profile, current_user),
         applications=applications,
         total_jobs=total_jobs,
         total_apps=total_apps,
@@ -325,31 +295,31 @@ def candidates():
 @login_required
 @company_required
 def interviews():
-    """Lista de entrevistas da empresa (candidaturas com entrevista marcada/realizada)."""
+    """Aba Entrevistas: lista candidaturas com entrevista marcada/realizada."""
     profile = current_user.company_profile
     if not profile:
-        flash("Complete o perfil da empresa antes de ver entrevistas.", "warning")
-        return redirect(url_for("company.company_data"))
+        flash("Complete o perfil da empresa antes de acessar entrevistas.", "warning")
+        return redirect(url_for("company.dashboard"))
 
-    interviews_q = (
+    interviews = (
         Application.query
         .join(Job, Application.job_id == Job.id)
         .filter(
             Job.company_id == profile.id,
             Application.status.in_(
-                ["entrevista_marcada", "entrevista_realizada", "interview", "oferta"]
-            )
+                [
+                    "entrevista_marcada",
+                    "entrevista_realizada",
+                    "interview",
+                    "oferta",
+                ]
+            ),
         )
         .order_by(Application.interview_datetime.desc().nullslast(), Application.created_at.desc())
+        .all()
     )
-    interviews_list = interviews_q.all()
 
-    return render_template(
-        "company/interviews.html",
-        profile=profile,
-        completion_percent=_company_completion_percent(profile, current_user),
-        interviews=interviews_list,
-    )
+    return render_template("company/interviews.html", profile=profile, interviews=interviews)
 
 
 @company_bp.route("/candidaturas/<int:application_id>/agendar", methods=["POST"])
@@ -459,23 +429,6 @@ def jobs():
     jobs_list = jobs_query.all()
     jobs_count = jobs_query.count()
 
-    applications_count = (
-        Application.query.join(Job, Application.job_id == Job.id)
-        .filter(Job.company_id == profile.id)
-        .count()
-    )
-    interviews_count = (
-        Application.query.join(Job, Application.job_id == Job.id)
-        .filter(
-            Job.company_id == profile.id,
-            Application.status.in_(
-                ["entrevista_marcada", "entrevista_realizada", "interview", "oferta"]
-            ),
-        )
-        .count()
-    )
-    interests_count = CompanyInterest.query.filter_by(company_id=profile.id).count()
-
     edit_job = None
     edit_id = request.args.get("edit", type=int)
     if edit_id:
@@ -563,12 +516,8 @@ def jobs():
     return render_template(
         "company/jobs.html",
         profile=profile,
-        completion_percent=_company_completion_percent(profile, current_user),
         jobs=jobs_list,
         jobs_count=jobs_count,
-        applications_count=applications_count,
-        interviews_count=interviews_count,
-        interests_count=interests_count,
         edit_job=edit_job
     )
 
@@ -626,18 +575,14 @@ def settings():
         db.session.commit()
 
     # aqui depois você pode colocar troca de senha da empresa, dados de faturamento, etc
-    return render_template(
-        "company/settings.html",
-        profile=profile,
-        completion_percent=_company_completion_percent(profile, current_user),
-    )
+    return render_template("company/settings.html", profile=profile)
 
 
 @company_bp.route("/empresa", methods=["GET", "POST"])
 @login_required
 @company_required
 def company_data():
-    """Dados da empresa (novo botão Empresa)."""
+    """Dados da empresa (tela 'Empresa' do painel)."""
     profile = current_user.company_profile
     if not profile:
         profile = CompanyProfile(user_id=current_user.id, cnpj=f"pending-{current_user.id}")
@@ -645,11 +590,22 @@ def company_data():
         db.session.commit()
 
     if request.method == "POST":
-        # Atualiza nome da empresa (User)
-        company_name = (request.form.get("company_name") or "").strip()
-        if company_name:
-            current_user.company_name = company_name
+        action = (request.form.get("action") or "").strip().lower()
 
+        # ---- Salvar apenas a foto/logomarca ----
+        if action == "logo":
+            logo_file = request.files.get("logo")
+            saved = _save_company_logo(logo_file)
+            if saved:
+                profile.logo_filename = saved
+                db.session.commit()
+                flash("Logomarca atualizada!", "success")
+            else:
+                flash("Selecione uma imagem válida para enviar.", "warning")
+            return redirect(url_for("company.company_data"))
+
+        # ---- Salvar informações ----
+        # Nome, email e CNPJ NÃO podem ser alterados aqui.
         profile.phone = (request.form.get("phone") or "").strip()
         profile.website = (request.form.get("website") or "").strip()
         profile.cep = (request.form.get("cep") or "").strip()
@@ -660,25 +616,24 @@ def company_data():
         profile.state = (request.form.get("state") or "").strip().upper()
         profile.segment = (request.form.get("segment") or "").strip()
         profile.company_size = (request.form.get("company_size") or "").strip()
-        profile.founded_year = (request.form.get("founded_year") or "").strip()
+
+        founded_year_raw = (request.form.get("founded_year") or "").strip()
+        if founded_year_raw:
+            try:
+                profile.founded_year = int(founded_year_raw)
+            except Exception:
+                flash("Ano de fundação inválido. Use apenas números (ex: 2018).", "warning")
+        else:
+            profile.founded_year = None
+
         profile.description = (request.form.get("description") or "").strip()
-
-        # upload logo (opcional)
-        logo_file = request.files.get("logo")
-        saved = _save_company_logo(logo_file)
-        if saved:
-            profile.logo_filename = saved
-
         profile.is_completed = True
+
         db.session.commit()
         flash("Dados da empresa atualizados!", "success")
         return redirect(url_for("company.company_data"))
 
-    return render_template(
-        "company/company_data.html",
-        profile=profile,
-        completion_percent=_company_completion_percent(profile, current_user),
-    )
+    return render_template("company/company_data.html", profile=profile)
 
 
 @company_bp.route("/perfil", methods=["GET", "POST"])

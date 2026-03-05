@@ -7,6 +7,7 @@
   {# cabeçalho da empresa (mesmo estilo que visão geral) #}
   {% include "company/_profile_header.html" %}
 
+  {# tabs do painel da empresa, com Candidatos ativo #}
   {% set active_tab = 'candidates' %}
   {% include "company/_dashboard_tabs.html" %}
 
@@ -186,9 +187,7 @@
 <form method="post"
       action="{{ url_for('company.schedule_application_interview', application_id=app.id) }}">
 
-                    {% if csrf_token is defined %}
-                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    {% endif %}
+                    {{ csrf_token() if csrf_token is defined }}
                     <div class="modal-body">
                       <div class="mb-3">
                         <label class="form-label small">Data</label>
