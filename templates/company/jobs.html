@@ -70,14 +70,11 @@
 
   {% include "company/_profile_header.html" %}
 
-  {% if profile and (not profile.is_completed or not profile.is_approved) %}
+  {% if profile and (not profile.is_completed) %}
     <div class="alert alert-warning" role="alert">
-      {% if not profile.is_completed %}
-        <b>Complete os dados da sua empresa</b> para liberar o cadastro de vagas.
-        <a class="alert-link" href="{{ url_for('company.company_data') }}">Ir para Dados da Empresa</a>
-      {% elif not profile.is_approved %}
-        <b>Sua empresa ainda não foi aprovada.</b> Assim que o Admin aprovar, você poderá cadastrar e publicar vagas.
-      {% endif %}
+      <b>Seu perfil de empresa ainda não está completo.</b>
+      Você pode <b>cadastrar vagas como rascunho</b>, mas só conseguirá <b>ativar/publicar</b> quando finalizar os dados.
+      <a class="alert-link" href="{{ url_for('company.company_data') }}">Finalizar cadastro da empresa</a>
     </div>
   {% endif %}
 
@@ -148,7 +145,7 @@
               <label class="form-label small text-slate-500">
                 Função <span class="text-danger">*</span>
               </label>
-              <input type="text" name="title" class="form-control auth-input" {% if not can_manage_jobs %}disabled{% endif %}
+              <input type="text" name="title" class="form-control auth-input"
                      value="{{ edit_job.title if edit_job else '' }}"
                      placeholder="Ex: Caixa, Vendedor(a), Atendente..." required>
             </div>
@@ -158,7 +155,7 @@
               <label class="form-label small text-slate-500">
                 Localização <span class="text-danger">*</span>
               </label>
-              <input type="text" name="city" class="form-control auth-input" {% if not can_manage_jobs %}disabled{% endif %}
+              <input type="text" name="city" class="form-control auth-input"
                      value="{{ edit_job.city if edit_job else '' }}"
                      placeholder="Cidade" required>
             </div>
@@ -168,7 +165,7 @@
   <div class="col-md-4 mb-3">
     <label class="form-label small text-slate-500">Modalidade</label>
     {% set v = edit_job.employment_type if edit_job else '' %}
-    <select name="employment_type" class="form-select auth-input" {% if not can_manage_jobs %}disabled{% endif %}>
+    <select name="employment_type" class="form-select auth-input">
       <option value="">Selecione...</option>
       <option value="CLT" {{ 'selected' if v=='CLT' else '' }}>CLT</option>
       <option value="PJ" {{ 'selected' if v=='PJ' else '' }}>PJ</option>
@@ -181,7 +178,7 @@
   <div class="col-md-4 mb-3">
     <label class="form-label small text-slate-500">Regime de trabalho</label>
     {% set r = edit_job.work_regime if edit_job else '' %}
-    <select name="work_regime" class="form-select auth-input" {% if not can_manage_jobs %}disabled{% endif %}>
+    <select name="work_regime" class="form-select auth-input">
       <option value="">Selecione...</option>
       <option value="Presencial" {{ 'selected' if r=='Presencial' else '' }}>Presencial</option>
       <option value="Home Office" {{ 'selected' if r=='Home Office' else '' }}>Home Office</option>
@@ -192,7 +189,7 @@
 
   <div class="col-md-4 mb-3">
     <label class="form-label small text-slate-500">Faixa salarial</label>
-    <input type="text" name="salary_range" class="form-control auth-input" {% if not can_manage_jobs %}disabled{% endif %}
+    <input type="text" name="salary_range" class="form-control auth-input"
            value="{% if edit_job and edit_job.salary_min is not none %}{{ brl(edit_job.salary_min) }}{% endif %}"
            placeholder="Ex: 1620">
   </div>
@@ -202,12 +199,12 @@
             <!-- Descrição -->
             <div class="mb-3">
               <label class="form-label small text-slate-500">Descrição da vaga</label>
-              <textarea name="description" rows="4" class="form-control auth-input" {% if not can_manage_jobs %}disabled{% endif %}
+              <textarea name="description" rows="4" class="form-control auth-input"
                         placeholder="Descreva as atribuições, responsabilidades e requisitos para a posição.">{{ edit_job.description if edit_job else "" }}</textarea>
             </div>
 
             <div class="d-flex justify-content-end flex-wrap gap-2">
-              <button type="submit" class="btn btn-primary" {% if not can_manage_jobs %}disabled{% endif %}>
+              <button type="submit" class="btn btn-primary">
                 {{ "Atualizar" if edit_job else "Cadastrar" }}
               </button>
             </div>
@@ -280,9 +277,10 @@
               <form method="post" action="{{ url_for('company.toggle_job', job_id=job.id) }}">
                 {{ csrf_token() if csrf_token is defined }}
                 <div class="form-check form-switch m-0">
-                  <input class="form-check-input" type="checkbox"
-                         data-toggle-url="{{ url_for('company.toggle_job', job_id=job.id) }}" class="form-check-input job-toggle"
-                         {% if job.is_active %}checked{% endif %}>
+                  <input class="form-check-input job-toggle" type="checkbox"
+                         data-toggle-url="{{ url_for('company.toggle_job', job_id=job.id) }}"
+                         {% if job.is_active %}checked{% endif %}
+                         {% if not can_activate_jobs %}disabled title="Finalize o cadastro da empresa para ativar/publicar vagas"{% endif %}>
                 </div>
               </form>
 

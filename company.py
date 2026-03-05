@@ -439,8 +439,11 @@ def jobs():
     """Sessão de Vagas: cadastro, edição e listagem das vagas da empresa."""
     profile = _get_or_create_company_profile(current_user)
 
-    # Bloqueia cadastro/edição de vagas até completar dados e aprovação do admin.
-    can_manage_jobs = bool(profile.is_completed) and bool(profile.is_approved)
+    # ✅ Regra:
+    # - Empresa pode CADASTRAR/EDITAR vagas mesmo com perfil incompleto (vira rascunho).
+    # - Só pode ATIVAR (publicar) vagas quando finalizar os dados do perfil.
+    can_manage_jobs = True
+    can_activate_jobs = bool(profile.is_completed)
 
     jobs_query = Job.query.filter_by(company_id=profile.id).order_by(Job.created_at.desc())
     jobs_list = jobs_query.all()
@@ -474,16 +477,7 @@ def jobs():
             return None, None
 
     if request.method == "POST":
-        if not profile.is_completed:
-            flash("Complete os dados da empresa antes de cadastrar vagas.", "warning")
-            return redirect(url_for("company.company_data"))
-
-        if not profile.is_approved:
-            flash(
-                "Sua empresa ainda não foi aprovada pelo Admin. Assim que aprovada, você poderá cadastrar e publicar vagas.",
-                "warning",
-            )
-            return redirect(url_for("company.jobs") + "#job-form")
+        creating_as_draft = not bool(profile.is_completed)
 
         title = request.form.get("title", "").strip()
         city = request.form.get("city", "").strip()
@@ -513,8 +507,18 @@ def jobs():
             job.salary_max = salary_max
             job.description = description
 
+            # Se o perfil ainda não foi finalizado, não deixa a vaga ficar ativa
+            if creating_as_draft:
+                job.is_active = False
+
             db.session.commit()
-            flash("Vaga atualizada com sucesso!", "success")
+            if creating_as_draft:
+                flash(
+                    "Vaga salva como rascunho. Para ativar/publicar, finalize os dados do perfil da empresa.",
+                    "warning",
+                )
+            else:
+                flash("Vaga atualizada com sucesso!", "success")
             return redirect(url_for("company.jobs") + f"#job-card-{job.id}")
 
         # criar nova vaga
@@ -527,11 +531,18 @@ def jobs():
             salary_min=salary_min,
             salary_max=salary_max,
             description=description,
-            is_active=True,
+            # Se o perfil ainda não estiver completo, a vaga nasce desativada (rascunho)
+            is_active=(not creating_as_draft),
         )
         db.session.add(job)
         db.session.commit()
-        flash("Vaga cadastrada com sucesso!", "success")
+        if creating_as_draft:
+            flash(
+                "Vaga cadastrada como rascunho. Para ativar/publicar, finalize os dados do perfil da empresa.",
+                "warning",
+            )
+        else:
+            flash("Vaga cadastrada com sucesso!", "success")
         return redirect(url_for("company.jobs") + f"#job-card-{job.id}")
 
     return render_template(
@@ -541,6 +552,7 @@ def jobs():
         jobs_count=jobs_count,
         edit_job=edit_job,
         can_manage_jobs=can_manage_jobs,
+        can_activate_jobs=can_activate_jobs,
     )
 
 
@@ -549,7 +561,7 @@ def jobs():
 @company_required
 def delete_job(job_id):
     """Exclui uma vaga da empresa."""
-    profile = current_user.company_profile
+    profile = _get_or_create_company_profile(current_user)
     job = Job.query.get_or_404(job_id)
 
     if not profile or job.company_id != profile.id:
@@ -567,12 +579,21 @@ def delete_job(job_id):
 @company_required
 def toggle_job(job_id):
     """Liga/desliga a vaga para aparecer (ou não) na home/buscas."""
-    profile = current_user.company_profile
+    profile = _get_or_create_company_profile(current_user)
     job = Job.query.get_or_404(job_id)
 
     if job.company_id != profile.id:
         flash("Você não tem permissão para alterar esta vaga.", "danger")
         return redirect(url_for("company.jobs"))
+
+    # Se estiver tentando ativar e o perfil não estiver completo, bloqueia
+    wants_activate = not bool(job.is_active)
+    if wants_activate and (not profile or not bool(profile.is_completed)):
+        flash(
+            "Para ativar/publicar vagas, finalize os dados do perfil da empresa.",
+            "warning",
+        )
+        return redirect(url_for("company.company_data"))
 
     job.is_active = not bool(job.is_active)
     db.session.commit()
