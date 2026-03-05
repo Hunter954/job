@@ -21,11 +21,7 @@ def index():
         Job.query
         .join(CompanyProfile, Job.company_id == CompanyProfile.id)
         .filter(Job.is_active.is_(True))
-        # Não exigir aprovação do admin para exibir vaga.
-        # A publicação fica condicionada ao perfil da empresa completo (is_completed=True)
-        # no momento de ativar a vaga.
-        .filter(CompanyProfile.is_completed.is_(True))
-        .filter(Job.title.isnot(None))
+                .filter(Job.title.isnot(None))
         .filter(func.trim(Job.title) != "")
         .order_by(Job.is_sponsored.desc(), Job.created_at.desc())
         .limit(8)
@@ -44,8 +40,7 @@ def job_list():
         Job.query
         .join(CompanyProfile, Job.company_id == CompanyProfile.id)
         .filter(Job.is_active.is_(True))
-        .filter(CompanyProfile.is_completed.is_(True))
-        .filter(Job.title.isnot(None))
+                .filter(Job.title.isnot(None))
         .filter(func.trim(Job.title) != "")
         .order_by(Job.is_sponsored.desc(), Job.created_at.desc())
         .all()
@@ -58,9 +53,6 @@ def job_detail(job_id):
     job = Job.query.get_or_404(job_id)
     # Não permitir acessar vaga inativa ou 'fantasma'
     if not job.is_active or not job.title or not job.title.strip():
-        abort(404)
-    # Não exigir aprovação do admin; somente garantir perfil completo para vagas ativas
-    if not job.company_profile or not job.company_profile.is_completed:
         abort(404)
     can_view_full = False
     if current_user.is_authenticated and current_user.role == "candidate" and current_user.is_premium:
