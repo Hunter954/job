@@ -6,20 +6,8 @@
 
   {% include "company/_profile_header.html" %}
 
-  <ul class="nav nav-tabs dashboard-tabs mb-3">
-    <li class="nav-item">
-      <a class="nav-link" href="{{ url_for('company.dashboard') }}">Visão Geral</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link" href="{{ url_for('company.jobs') }}">Vagas</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link" href="{{ url_for('company.candidates') }}">Candidatos</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link active" href="{{ url_for('company.settings') }}">Configurações</a>
-    </li>
-  </ul>
+  {% set active_tab = 'settings' %}
+  {% include "company/_dashboard_tabs.html" %}
 
   <div class="card">
     <div class="card-body">

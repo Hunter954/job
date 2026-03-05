@@ -1,0 +1,32 @@
+{#
+  Tabs do painel da empresa (mesmo padrão do painel do candidato)
+  Use: {% set active_tab = 'dashboard' %}{% include 'company/_dashboard_tabs.html' %}
+  Opções: dashboard, jobs, company, candidates, interviews, settings
+#}
+
+<ul class="nav nav-tabs dashboard-tabs mb-3">
+  <li class="nav-item">
+    <a class="nav-link {% if active_tab == 'dashboard' %}active{% endif %}"
+       href="{{ url_for('company.dashboard') }}">Visão Geral</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link {% if active_tab == 'jobs' %}active{% endif %}"
+       href="{{ url_for('company.jobs') }}">Vagas</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link {% if active_tab == 'company' %}active{% endif %}"
+       href="{{ url_for('company.company_data') }}">Empresa</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link {% if active_tab == 'candidates' %}active{% endif %}"
+       href="{{ url_for('company.candidates') }}">Candidatos</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link {% if active_tab == 'interviews' %}active{% endif %}"
+       href="{{ url_for('company.interviews') }}">Entrevistas</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link {% if active_tab == 'settings' %}active{% endif %}"
+       href="{{ url_for('company.settings') }}">Configurações</a>
+  </li>
+</ul>

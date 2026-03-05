@@ -7,21 +7,8 @@
   {# cabeçalho da empresa (mesmo estilo que visão geral) #}
   {% include "company/_profile_header.html" %}
 
-  {# tabs do painel da empresa, com Candidatos ativo #}
-  <ul class="nav nav-tabs dashboard-tabs mb-3">
-    <li class="nav-item">
-      <a class="nav-link" href="{{ url_for('company.dashboard') }}">Visão Geral</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link" href="{{ url_for('company.jobs') }}">Vagas</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link active" href="{{ url_for('company.candidates') }}">Candidatos</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link" href="{{ url_for('company.settings') }}">Configurações</a>
-    </li>
-  </ul>
+  {% set active_tab = 'candidates' %}
+  {% include "company/_dashboard_tabs.html" %}
 
   <div class="card">
     <div class="card-body">
@@ -199,7 +186,9 @@
 <form method="post"
       action="{{ url_for('company.schedule_application_interview', application_id=app.id) }}">
 
-                    {{ csrf_token() if csrf_token is defined }}
+                    {% if csrf_token is defined %}
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    {% endif %}
                     <div class="modal-body">
                       <div class="mb-3">
                         <label class="form-label small">Data</label>
