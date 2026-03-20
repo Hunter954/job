@@ -174,58 +174,6 @@
                     Carregar mais vagas →
                 </a>
             </div>
-{% else %}
-                                                {{ obfuscate_company(company_name) }}
-                                            {% endif %}
-                                        {% else %}
-                                            Empresa confidencial
-                                        {% endif %}
-                                    </span>
-                                    <span>
-                                        <i class="bi bi-geo-alt me-1"></i>
-                                        {{ job.city or "Localização não informada" }}
-                                    </span>
-
-                                    {% if job.salary_min or job.salary_max %}
-                                        <span>
-                                            <i class="bi bi-cash-stack me-1"></i>
-                                            R$
-                                            {% if job.salary_min %}{{ "%.0f"|format(job.salary_min) }}{% endif %}
-                                            {% if job.salary_max %} - R$ {{ "%.0f"|format(job.salary_max) }}{% endif %}
-                                        </span>
-                                    {% endif %}
-
-                                    {% if job.created_at %}
-                                        <span>
-                                            <i class="bi bi-clock me-1"></i>
-                                            Publicada em {{ job.created_at.strftime("%d/%m/%Y") }}
-                                        </span>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <!-- botão direita -->
-                            <div class="job-card-right">
-                                {% if current_user.is_authenticated and current_user.role == 'candidate' %}
-                                    <a href="{{ url_for('candidate.apply', job_id=job.id) }}" class="btn btn-job-primary">
-                                        Candidatar
-                                    </a>
-                                {% else %}
-                                    <a href="{{ url_for('auth.choose_type') }}" class="btn btn-job-primary">
-                                        Candidatar
-                                    </a>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-
-            <div class="text-center mt-4">
-                <a href="{{ url_for('main.job_list') }}" class="btn btn-outline-load">
-                    Carregar mais vagas →
-                </a>
-            </div>
         {% else %}
             <p class="small text-slate-500 mb-0">
                 Nenhuma vaga cadastrada ainda.
